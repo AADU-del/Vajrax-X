@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAJRA-X | Error {{ code }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue: #06b6d4;
+  --red: #ef4444;
+  --bg: #0b0f19;
+  --panel: rgba(17, 24, 39, 0.8);
+  --border: rgba(255, 255, 255, 0.06);
+  --text: #f3f4f6;
+  --dim: #9ca3af;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(6, 182, 212, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 182, 212, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+.err-box {
+  text-align: center;
+  max-width: 500px;
+  padding: 60px 50px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--red);
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+.err-box::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--red), transparent);
+}
+.err-code {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 80px;
+  font-weight: 800;
+  color: var(--red);
+  text-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+  line-height: 1;
+  margin-bottom: 12px;
+}
+.err-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  color: var(--text);
+  margin-bottom: 16px;
+  letter-spacing: 0.15em;
+  font-weight: 700;
+}
+.err-msg {
+  font-size: 13px;
+  color: var(--dim);
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  color: var(--blue);
+  text-decoration: none;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  border-radius: 4px;
+  transition: all 0.2s;
+  font-weight: bold;
+}
+.btn-back:hover {
+  background: rgba(6, 182, 212, 0.16);
+  border-color: var(--blue);
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.2);
+}
+.scanner-line {
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+  animation: scan 3s linear infinite;
+  opacity: 0.5;
+}
+@keyframes scan {
+  0% { top: 0; }
+  100% { top: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="err-box">
+  <div class="scanner-line"></div>
+  <div class="err-code">{{ code or '404' }}</div>
+  <div class="err-title">SYSTEM FAULT</div>
+  <div class="err-msg">{{ error or 'The requested module or coordinate is not accessible. Verify clearance level.' }}</div>
+  <a href="/dashboard" class="btn-back">← RETURN TO DASHBOARD</a>
+</div>
+</body>
+</html>

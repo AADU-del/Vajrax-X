@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAJRA-X | Secure Access</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --red:#ff0033;--green:#00ff88;--blue:#00cfff;
+    --bg:#040810;--panel:#080f1a;--border:#0a2040;
+    --text:#c0d8f0;--dim:#3a5a7a
+  }
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:'Share Tech Mono',monospace;
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+  }
+  body::before{
+    content:'';position:fixed;inset:0;
+    background-image:
+      linear-gradient(rgba(0,207,255,0.04) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(0,207,255,0.04) 1px,transparent 1px);
+    background-size:40px 40px;
+    pointer-events:none;
+  }
+  body::after{
+    content:'';position:fixed;top:-100%;left:0;right:0;height:2px;
+    background:linear-gradient(transparent,rgba(0,255,136,0.3),transparent);
+    animation:scan 4s linear infinite;pointer-events:none;
+  }
+  @keyframes scan{to{top:110%}}
+  .auth-wrap{
+    position:relative;width:440px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    box-shadow:0 0 40px rgba(0,207,255,0.08),inset 0 0 40px rgba(0,0,0,0.5);
+    padding:0;overflow:hidden;
+  }
+  .auth-wrap::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,transparent,var(--blue),var(--green),var(--blue),transparent);
+    animation:topline 3s linear infinite;
+  }
+  @keyframes topline{0%{opacity:0.5}50%{opacity:1}100%{opacity:0.5}}
+  .auth-header{
+    background:linear-gradient(135deg,#060d18,#0a1525);
+    padding:32px 36px 24px;
+    border-bottom:1px solid var(--border);
+    text-align:center;
+  }
+  .logo-ring{
+    width:72px;height:72px;margin:0 auto 16px;
+    border-radius:50%;border:2px solid var(--blue);
+    display:flex;align-items:center;justify-content:center;
+    position:relative;animation:ringpulse 2s ease-in-out infinite;
+    box-shadow:0 0 20px rgba(0,207,255,0.3);
+  }
+  @keyframes ringpulse{0%,100%{box-shadow:0 0 20px rgba(0,207,255,0.3)}50%{box-shadow:0 0 40px rgba(0,207,255,0.6),0 0 60px rgba(0,207,255,0.2)}}
+  .logo-ring svg{width:36px;height:36px}
+  .auth-title{
+    font-family:'Orbitron',monospace;font-size:22px;
+    font-weight:900;letter-spacing:0.15em;
+    background:linear-gradient(90deg,var(--blue),var(--green));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .auth-sub{font-size:11px;color:var(--dim);letter-spacing:0.2em;margin-top:4px}
+  .mode-tabs{
+    display:flex;gap:0;border-bottom:1px solid var(--border);
+  }
+  .mode-tab{
+    flex:1;padding:16px 12px;text-align:center;font-size:11px;
+    letter-spacing:0.1em;cursor:pointer;transition:all 0.3s;
+    background:rgba(0,0,0,0.2);color:var(--dim);border:none;
+    font-family:'Orbitron',monospace;
+  }
+  .mode-tab:hover{background:rgba(0,207,255,0.05)}
+  .mode-tab.active{
+    background:linear-gradient(135deg,#003366,#004488);
+    color:var(--blue);border-bottom:2px solid var(--green);
+  }
+  .auth-body{padding:32px 36px}
+  .form-container{display:none}
+  .form-container.active{display:block}
+  .status-bar{
+    display:flex;align-items:center;gap:8px;
+    background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.15);
+    padding:8px 12px;border-radius:2px;margin-bottom:24px;font-size:11px;
+    color:var(--green);
+  }
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+  .field{margin-bottom:20px}
+  .field label{display:block;font-size:10px;letter-spacing:0.2em;color:var(--blue);margin-bottom:8px}
+  .field input{
+    width:100%;padding:12px 14px;
+    background:#050d18;border:1px solid var(--border);
+    color:var(--text);font-family:'Share Tech Mono',monospace;font-size:14px;
+    outline:none;transition:all 0.2s;
+    border-radius:2px;
+  }
+  .field input:focus{border-color:var(--blue);box-shadow:0 0 12px rgba(0,207,255,0.15)}
+  .field input::placeholder{color:var(--dim)}
+  .error-msg{
+    background:rgba(255,0,51,0.1);border:1px solid rgba(255,0,51,0.3);
+    color:#ff6680;padding:10px 12px;font-size:12px;
+    border-radius:2px;margin-bottom:16px;display:none;
+  }
+  .error-msg.show{display:block}
+  .success-msg{
+    background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);
+    color:#66ff99;padding:10px 12px;font-size:12px;
+    border-radius:2px;margin-bottom:16px;display:none;
+  }
+  .success-msg.show{display:block}
+  .btn-submit{
+    width:100%;padding:14px;
+    background:linear-gradient(135deg,#003366,#004488);
+    border:1px solid var(--blue);color:var(--blue);
+    font-family:'Orbitron',monospace;font-size:13px;letter-spacing:0.15em;
+    cursor:pointer;transition:all 0.2s;border-radius:2px;
+  }
+  .btn-submit:hover{background:linear-gradient(135deg,#004488,#0066aa);box-shadow:0 0 20px rgba(0,207,255,0.25)}
+  .btn-submit:active{transform:scale(0.99)}
+  .btn-submit.loading{pointer-events:none;opacity:0.7}
+  .auth-footer{
+    padding:16px 36px;background:rgba(0,0,0,0.3);
+    border-top:1px solid var(--border);
+    display:flex;justify-content:space-between;font-size:10px;color:var(--dim);
+  }
+  .classified{color:var(--red);letter-spacing:0.1em}
+</style>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-header">
+    <div class="logo-ring">
+      <svg viewBox="0 0 36 36" fill="none">
+        <circle cx="18" cy="18" r="14" stroke="#00cfff" stroke-width="1.5" stroke-dasharray="4 2"/>
+        <circle cx="18" cy="18" r="8" stroke="#00ff88" stroke-width="1.5"/>
+        <circle cx="18" cy="18" r="3" fill="#00cfff"/>
+        <line x1="18" y1="4" x2="18" y2="10" stroke="#00cfff" stroke-width="1.5"/>
+        <line x1="18" y1="26" x2="18" y2="32" stroke="#00cfff" stroke-width="1.5"/>
+        <line x1="4" y1="18" x2="10" y2="18" stroke="#00cfff" stroke-width="1.5"/>
+        <line x1="26" y1="18" x2="32" y2="18" stroke="#00cfff" stroke-width="1.5"/>
+      </svg>
+    </div>
+    <div class="auth-title">VAJRA-X</div>
+    <div class="auth-sub">MULTI-DOMAIN SITUATIONAL AWARENESS PLATFORM</div>
+  </div>
+
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="login">◀ LOGIN</button>
+    <button class="mode-tab" data-mode="register">REGISTER ▶</button>
+  </div>
+
+  <div class="auth-body">
+    <div class="status-bar">
+      <span class="dot"></span>
+      SYSTEM ONLINE — AUTHENTICATION REQUIRED
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div id="loginForm" class="form-container active">
+      <div class="error-msg" id="loginError"></div>
+      <div class="success-msg" id="loginSuccess"></div>
+      <form onsubmit="handleLogin(event)">
+        <div class="field">
+          <label>OPERATOR ID</label>
+          <input type="text" name="username" id="loginUsername" placeholder="Enter operator ID" autocomplete="off" required>
+        </div>
+        <div class="field">
+          <label>ACCESS CODE</label>
+          <input type="password" name="password" id="loginPassword" placeholder="Enter access code" required>
+        </div>
+        <button type="submit" class="btn-submit" id="loginBtn">▶ AUTHENTICATE &amp; ENTER</button>
+      </form>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div id="registerForm" class="form-container">
+      <div class="error-msg" id="registerError"></div>
+      <div class="success-msg" id="registerSuccess"></div>
+      <form onsubmit="handleRegister(event)">
+        <div class="field">
+          <label>OPERATOR ID (USERNAME)</label>
+          <input type="text" name="username" id="regUsername" placeholder="Create operator ID" autocomplete="off" required minlength="3">
+        </div>
+        <div class="field">
+          <label>ACCESS CODE (PASSWORD)</label>
+          <input type="password" name="password" id="regPassword" placeholder="Create access code" required minlength="6">
+        </div>
+        <div class="field">
+          <label>CONFIRM ACCESS CODE</label>
+          <input type="password" name="confirm_password" id="regConfirm" placeholder="Confirm access code" required minlength="6">
+        </div>
+        <button type="submit" class="btn-submit" id="registerBtn">✚ CREATE OPERATOR ACCOUNT</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="auth-footer">
+    <span>v2.4.1 | YOLOv8n ENGINE</span>
+    <span class="classified">⚠ CLASSIFIED ACCESS</span>
+  </div>
+</div>
+
+<script>
+// Mode switching
+document.querySelectorAll('.mode-tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    const mode = this.dataset.mode;
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+    document.querySelectorAll('.form-container').forEach(f => f.classList.remove('active'));
+    document.getElementById(mode + 'Form').classList.add('active');
+    clearMessages();
+  });
+});
+
+function clearMessages() {
+  document.querySelectorAll('.error-msg, .success-msg').forEach(el => el.classList.remove('show'));
+}
+
+function showError(formId, message) {
+  clearMessages();
+  const errorEl = document.getElementById(formId + 'Error');
+  if (errorEl) {
+    errorEl.textContent = '⚠ ' + message;
+    errorEl.classList.add('show');
+  }
+}
+
+function showSuccess(formId, message) {
+  clearMessages();
+  const successEl = document.getElementById(formId + 'Success');
+  if (successEl) {
+    successEl.textContent = '✓ ' + message;
+    successEl.classList.add('show');
+  }
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+
+  if (!username || !password) {
+    showError('login', 'Username and password required');
+    return;
+  }
+
+  btn.textContent = '⧳ AUTHENTICATING...';
+  btn.classList.add('loading');
+
+  try {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+      credentials: 'include'
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.status === 'success') {
+      showSuccess('login', 'Authentication successful. Redirecting...');
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1000);
+    } else {
+      showError('login', data.message || 'Authentication failed');
+      btn.textContent = '▶ AUTHENTICATE &amp; ENTER';
+      btn.classList.remove('loading');
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    showError('login', 'Connection error: ' + error.message);
+    btn.textContent = '▶ AUTHENTICATE &amp; ENTER';
+    btn.classList.remove('loading');
+  }
+}
+
+async function handleRegister(event) {
+  event.preventDefault();
+  const btn = document.getElementById('registerBtn');
+  const username = document.getElementById('regUsername').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const confirm = document.getElementById('regConfirm').value;
+
+  if (!username || !password || !confirm) {
+    showError('register', 'All fields required');
+    return;
+  }
+
+  if (username.length < 3) {
+    showError('register', 'Username must be at least 3 characters');
+    return;
+  }
+
+  if (password.length < 6) {
+    showError('register', 'Password must be at least 6 characters');
+    return;
+  }
+
+  if (password !== confirm) {
+    showError('register', 'Passwords do not match');
+    return;
+  }
+
+  btn.textContent = '⧳ REGISTERING...';
+  btn.classList.add('loading');
+
+  try {
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+      credentials: 'include'
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.status === 'success') {
+      showSuccess('register', 'Account created! Redirecting to dashboard...');
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1500);
+    } else {
+      showError('register', data.message || 'Registration failed');
+      btn.textContent = '✚ CREATE OPERATOR ACCOUNT';
+      btn.classList.remove('loading');
+    }
+  } catch (error) {
+    console.error('Register error:', error);
+    showError('register', 'Connection error: ' + error.message);
+    btn.textContent = '✚ CREATE OPERATOR ACCOUNT';
+    btn.classList.remove('loading');
+  }
+}
+
+// Pre-fill login form if coming from registration
+if (new URLSearchParams(window.location.search).get('mode') === 'login-ready') {
+  document.querySelector('[data-mode="login"]').click();
+}
+</script>
+</body>
+</html>

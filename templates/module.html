@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+{% block title %}{{ module_title }}{% endblock %}
+{% block page_title %}{{ module_title | upper }}{% endblock %}
+{% block breadcrumb %}VAJRA-X / MODULES / {{ module_name | upper }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.mod-layout{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
+.live-feed-area{
+  background:#020608;border:1px solid var(--border);
+  position:relative;min-height:320px;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.feed-ph{text-align:center;color:var(--dim);font-family:'Share Tech Mono',monospace}
+.live-badge{position:absolute;top:10px;left:10px;background:rgba(255,0,0,0.8);color:#fff;font-size:10px;padding:3px 8px;font-family:'Share Tech Mono',monospace;letter-spacing:0.1em;display:none;align-items:center;gap:5px}
+.live-badge.show{display:flex}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#fff;animation:blink 0.8s infinite}
+.det-feed{max-height:320px;overflow-y:auto}
+.det-feed::-webkit-scrollbar{width:3px}
+.det-feed::-webkit-scrollbar-thumb{background:var(--border2)}
+.det-item{padding:8px 12px;border-bottom:1px solid rgba(13,32,53,0.5);display:flex;align-items:center;justify-content:space-between;animation:rowIn 0.3s ease-out}
+@keyframes rowIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+.det-item:last-child{border-bottom:none}
+.upload-zone{border:1px dashed var(--border2);padding:24px;text-align:center;cursor:pointer;border-radius:2px;transition:all 0.2s}
+.upload-zone:hover{border-color:var(--blue);background:rgba(0,207,255,0.03)}
+.ctrl-panel{display:flex;flex-wrap:wrap;gap:8px;padding:12px;border-top:1px solid var(--border)}
+.mod-stat{
+  text-align:center;padding:18px;background:var(--panel);border:1px solid var(--border);
+  border-radius:6px;position:relative;overflow:hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  backdrop-filter: blur(8px);
+}
+.mod-stat:hover { transform: translateY(-2px); }
+.mod-stat::before {
+  content: '';position:absolute;top:0;left:0;right:0;height:2px;
+  background: var(--blue);opacity:0.5;
+}
+.mod-stat .ms-num{font-family:'Exo 2',sans-serif;font-size:28px;font-weight:800;text-shadow:0 0 8px currentColor}
+.mod-stat .ms-lbl{font-size:10px;letter-spacing:0.12em;color:var(--dim);font-family:'Share Tech Mono',monospace;margin-top:6px;font-weight:600}
+.info-box{background:var(--panel);border:1px solid var(--border);padding:16px;margin-bottom:14px;border-radius:6px;backdrop-filter:blur(8px);transition:border-color 0.2s}
+.info-box:hover{border-color:rgba(6,182,212,0.15)}
+.info-box .ib-title{font-family:'Orbitron',monospace;font-size:11px;color:var(--blue);margin-bottom:10px;letter-spacing:0.1em;font-weight:700}
+.info-tag{display:inline-block;padding:4px 10px;margin:3px;background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.15);color:var(--text);font-size:11px;font-family:'Share Tech Mono',monospace;border-radius:3px;transition:all 0.15s}
+.info-tag:hover{background:rgba(6,182,212,0.12);border-color:rgba(6,182,212,0.3);transform:translateY(-1px)}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- MODULE STATS ROW -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+  {% set ns = namespace(total=0, high=0, med=0, low=0) %}
+  {% for d in detections %}
+    {% set ns.total = ns.total + 1 %}
+    {% if d.threat_level == 'HIGH' %}{% set ns.high = ns.high + 1 %}{% endif %}
+    {% if d.threat_level == 'MEDIUM' %}{% set ns.med = ns.med + 1 %}{% endif %}
+    {% if d.threat_level == 'LOW' %}{% set ns.low = ns.low + 1 %}{% endif %}
+  {% endfor %}
+  <div class="mod-stat" style="border-top:2px solid var(--blue);background:radial-gradient(120% 120% at 50% 0%, rgba(6,182,212,0.1) 0%, var(--panel) 100%)">
+    <div class="ms-num" style="color:var(--blue)" id="ms-total">{{ ns.total }}</div>
+    <div class="ms-lbl">TOTAL DETECTIONS</div>
+  </div>
+  <div class="mod-stat" style="border-top:2px solid var(--red);background:radial-gradient(120% 120% at 50% 0%, rgba(239,68,68,0.1) 0%, var(--panel) 100%)">
+    <div class="ms-num" style="color:var(--red)" id="ms-high">{{ ns.high }}</div>
+    <div class="ms-lbl">HIGH THREATS</div>
+  </div>
+  <div class="mod-stat" style="border-top:2px solid var(--orange);background:radial-gradient(120% 120% at 50% 0%, rgba(245,158,11,0.1) 0%, var(--panel) 100%)">
+    <div class="ms-num" style="color:var(--orange)" id="ms-med">{{ ns.med }}</div>
+    <div class="ms-lbl">MEDIUM THREATS</div>
+  </div>
+  <div class="mod-stat" style="border-top:2px solid var(--green);background:radial-gradient(120% 120% at 50% 0%, rgba(16,185,129,0.1) 0%, var(--panel) 100%)">
+    <div class="ms-num" style="color:var(--green)" id="ms-low">{{ ns.low }}</div>
+    <div class="ms-lbl">LOW THREATS</div>
+  </div>
+</div>
+
+<div class="mod-layout">
+
+  <!-- LEFT -->
+  <div>
+    <!-- Camera Feed -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header">
+        <span class="card-title">📹 {{ module_title | upper }} FEED</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="mod-badge">{{ module_name }}</span>
+        </div>
+      </div>
+      <div class="live-feed-area" id="liveFeedArea">
+        <div class="live-badge" id="liveBadge"><span class="live-dot"></span> LIVE AI</div>
+        <div class="feed-ph" id="feedPh">
+          <div style="font-size:48px;opacity:0.25;margin-bottom:12px">🎯</div>
+          <div style="font-size:11px;letter-spacing:0.1em">MODULE INACTIVE</div>
+          <div style="font-size:10px;margin-top:6px">Start camera or upload media</div>
+        </div>
+        <img id="liveImg" style="max-width:100%;display:none" alt="Detection feed">
+        <video id="webcamVid" style="position:absolute;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none" autoplay muted playsinline></video>
+        <canvas id="procCanvas" style="display:none"></canvas>
+      </div>
+      <div class="ctrl-panel">
+        <button class="btn btn-success" id="btnWC" onclick="startWebcam()">🌐 BROWSER WEBCAM</button>
+        <button class="btn btn-danger" id="btnStopWC" onclick="stopWebcam()" style="display:none">■ STOP</button>
+        <button class="btn btn-primary" id="btnSockCam" onclick="startSocketCam()">📹 SERVER CAMERA</button>
+        <button class="btn btn-danger" id="btnStopSock" onclick="stopSocketCam()" style="display:none">■ STOP</button>
+        <span id="fpsInfo" style="font-size:10px;color:var(--dim);font-family:'Share Tech Mono',monospace;margin-left:auto;align-self:center"></span>
+      </div>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📂 UPLOAD FOR DETECTION</span>
+        <span style="font-size:10px;color:var(--dim);font-family:'Share Tech Mono',monospace">MODULE: {{ module_name | upper }}</span>
+      </div>
+      <div class="card-body">
+        <div class="upload-zone" id="dropZone"
+             ondragover="event.preventDefault();this.style.borderColor='var(--blue)'"
+             ondragleave="this.style.borderColor='var(--border2)'"
+             ondrop="handleDrop(event)"
+>
+          <div style="font-size:32px;margin-bottom:8px">📁</div>
+          <div style="font-size:12px;color:var(--dim);font-family:'Share Tech Mono',monospace">DRAG & DROP IMAGE / VIDEO</div>
+          <div style="font-size:10px;color:var(--dim);margin-top:4px">or click to browse</div>
+          <input type="file" id="fileInput" style="display:none" accept="image/*,video/*" onchange="handleFile(this)">
+        </div>
+        <div id="upStatus" style="margin-top:10px;font-size:11px;font-family:'Share Tech Mono',monospace;display:none"></div>
+        <div id="upResult" style="margin-top:10px;display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div>
+
+    <!-- Module Info -->
+    <div class="info-box">
+      <div class="ib-title">🔍 DETECTION TARGETS</div>
+      {% set targets_map = {
+        'border': ['person','car','truck','motorcycle','backpack','suitcase'],
+        'disaster': ['person','car','bus','truck','fire hydrant','boat'],
+        'railway': ['person','bicycle','motorcycle','car','truck','dog','cat'],
+        'smart_city': ['person','car','bicycle','motorcycle','bus','truck','traffic light','stop sign'],
+        'mining': ['person','truck','car','backpack'],
+        'forest': ['person','car','truck','bird','cat','dog','horse','cow','bear']
+      } %}
+      {% for t in targets_map.get(module_name, []) %}
+      <span class="info-tag">{{ t }}</span>
+      {% endfor %}
+    </div>
+
+    <!-- Live Detection Feed -->
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-header">
+        <span class="card-title">⚡ LIVE DETECTIONS</span>
+        <span id="liveDetCount" style="font-size:10px;color:var(--dim);font-family:'Share Tech Mono',monospace">Waiting...</span>
+      </div>
+      <div class="det-feed" id="liveDet">
+        <div style="padding:20px;text-align:center;color:var(--dim);font-size:11px;font-family:'Share Tech Mono',monospace">
+          AWAITING INPUT...
+        </div>
+      </div>
+    </div>
+
+    <!-- Module Detection Log -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📋 MODULE LOG</span>
+        <button class="btn btn-danger" onclick="clearModuleDetections()" style="font-size:10px;padding:4px 8px">🗑 CLEAR</button>
+      </div>
+      <div style="max-height:300px;overflow-y:auto" id="modLogArea">
+        <table class="det-table">
+          <thead>
+            <tr><th>OBJECT</th><th>CONF</th><th>THREAT</th><th>TIME</th></tr>
+          </thead>
+          <tbody id="modLogBody">
+            {% for d in detections %}
+            <tr>
+              <td>{{ d.object_detected }}</td>
+              <td>{{ "%.0f"|format(d.confidence * 100) }}%</td>
+              <td><span class="threat-badge threat-{{ d.threat_level }}" style="font-size:10px;padding:2px 6px">{{ d.threat_level }}</span></td>
+              <td style="font-size:10px;color:var(--dim)" class="utc-time" data-utc="{{ d.timestamp }}" data-format="time">{{ d.timestamp }}</td>
+            </tr>
+            {% else %}
+            <tr id="emptyRow"><td colspan="4" style="text-align:center;color:var(--dim);padding:16px;font-size:11px;font-family:'Share Tech Mono',monospace">NO DETECTIONS</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+const MODULE_NAME = '{{ module_name }}';
+let wcStream = null, wcInterval = null;
+let frmCount = 0, lastFps = Date.now();
+
+function startWebcam() {
+  navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false })
+    .then(stream => {
+      wcStream = stream;
+      document.getElementById('webcamVid').srcObject = stream;
+      document.getElementById('liveImg').style.display = 'none';
+      document.getElementById('feedPh').style.display = 'none';
+      document.getElementById('liveBadge').classList.add('show');
+      document.getElementById('btnWC').style.display = 'none';
+      document.getElementById('btnStopWC').style.display = 'inline-flex';
+      wcInterval = setInterval(processFrame, 500);
+    })
+    .catch(e => showAlert('Webcam: ' + e.message, 'high'));
+}
+
+function stopWebcam() {
+  if(wcStream) { wcStream.getTracks().forEach(t=>t.stop()); wcStream=null; }
+  clearInterval(wcInterval);
+  document.getElementById('feedPh').style.display='block';
+  document.getElementById('liveBadge').classList.remove('show');
+  document.getElementById('btnWC').style.display='inline-flex';
+  document.getElementById('btnStopWC').style.display='none';
+  document.getElementById('fpsInfo').textContent='';
+}
+
+function processFrame() {
+  const vid = document.getElementById('webcamVid');
+  const canvas = document.getElementById('procCanvas');
+  if (!vid.videoWidth) return;
+  canvas.width = vid.videoWidth; canvas.height = vid.videoHeight;
+  canvas.getContext('2d').drawImage(vid, 0, 0);
+  const fd = canvas.toDataURL('image/jpeg', 0.7);
+  fetch('/api/process_webcam_frame', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ frame: fd, module: MODULE_NAME })
+  }).then(r=>r.json()).then(data=>{
+    if(data.success && data.processed_frame) {
+      document.getElementById('liveImg').src = data.processed_frame;
+      document.getElementById('liveImg').style.display='block';
+      updateLiveDet(data.detections||[]);
+      frmCount++;
+      const now=Date.now();
+      if(now-lastFps>3000){
+        document.getElementById('fpsInfo').textContent=(frmCount/((now-lastFps)/1000)).toFixed(1)+' FPS';
+        frmCount=0; lastFps=now;
+      }
+    }
+  }).catch(e=>console.warn(e));
+}
+
+function startSocketCam() {
+  socket.emit('start_camera', { module: MODULE_NAME });
+  document.getElementById('btnSockCam').style.display='none';
+  document.getElementById('btnStopSock').style.display='inline-flex';
+}
+
+function stopSocketCam() {
+  socket.emit('stop_camera');
+  document.getElementById('btnSockCam').style.display='inline-flex';
+  document.getElementById('btnStopSock').style.display='none';
+}
+
+socket.on('live_frame', d => {
+  if(d.module !== MODULE_NAME) return;
+  document.getElementById('feedPh').style.display='none';
+  document.getElementById('liveBadge').classList.add('show');
+  document.getElementById('liveImg').src='data:image/jpeg;base64,'+d.frame;
+  document.getElementById('liveImg').style.display='block';
+  updateLiveDet(d.detections||[]);
+});
+
+function updateLiveDet(dets) {
+  document.getElementById('liveDetCount').textContent = dets.length + ' objects';
+  const c = document.getElementById('liveDet');
+  if(!dets.length){
+    c.innerHTML='<div style="padding:16px;text-align:center;color:var(--dim);font-size:11px;font-family:\'Share Tech Mono\',monospace">NO OBJECTS DETECTED</div>';
+    return;
+  }
+  c.innerHTML = dets.map(d=>`
+    <div class="det-item">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:12px">${d.label}</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span style="font-size:11px;color:var(--dim)">${(d.confidence*100).toFixed(0)}%</span>
+        <span class="threat-badge threat-${d.threat_level}" style="font-size:9px;padding:2px 5px">${d.threat_level}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function onDetectionUpdate(d) {
+  if(d.module && d.module !== MODULE_NAME) return;
+  fetch('/api/detections?module='+MODULE_NAME+'&limit=30')
+    .then(r=>r.json())
+    .then(res=>{
+      const rows = res.data || [];
+      const body=document.getElementById('modLogBody');
+      if(!rows.length) return;
+      body.innerHTML=rows.map(r=>`<tr>
+        <td>${r.object_detected}</td>
+        <td>${(r.confidence*100).toFixed(0)}%</td>
+        <td><span class="threat-badge threat-${r.threat_level}" style="font-size:10px;padding:2px 6px">${r.threat_level}</span></td>
+        <td style="font-size:10px;color:var(--dim)">${formatLocalTime(r.timestamp, 'time')}</td>
+      </tr>`).join('');
+    });
+
+  fetch('/api/stats?module='+MODULE_NAME)
+    .then(r=>r.json())
+    .then(s=>{
+      document.getElementById('ms-total').textContent = s.total || 0;
+      const bt = s.by_threat || {};
+      document.getElementById('ms-high').textContent   = bt['HIGH']   || 0;
+      document.getElementById('ms-med').textContent    = bt['MEDIUM']  || 0;
+      document.getElementById('ms-low').textContent    = bt['LOW']     || 0;
+    });
+}
+
+// Upload
+document.getElementById('dropZone').addEventListener('click', ()=>document.getElementById('fileInput').click());
+function handleDrop(e){ e.preventDefault(); e.currentTarget.style.borderColor='var(--border2)'; if(e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]); }
+function handleFile(i){ if(i.files.length) uploadFile(i.files[0]); }
+
+function uploadFile(file){
+  const status=document.getElementById('upStatus');
+  const result=document.getElementById('upResult');
+  status.style.display='block'; status.style.color='var(--blue)';
+  status.textContent='⏳ PROCESSING: '+file.name;
+  result.style.display='none';
+  const fd=new FormData(); fd.append('file',file); fd.append('module',MODULE_NAME);
+  fetch('/upload',{method:'POST',body:fd}).then(r=>r.json()).then(data=>{
+    if(data.success){
+      status.style.color='var(--green)';
+      status.textContent='✓ DONE: '+(data.count||data.total_detections||0)+' detections';
+      if(data.processed_url){ result.style.display='block'; result.innerHTML=`<img src="${data.processed_url}" style="max-width:100%;border:1px solid var(--border)">`; }
+      if(data.detections&&data.detections.length){
+        result.style.display='block';
+        updateLiveDet(data.detections);
+        result.innerHTML+='<div style="margin-top:8px">'+data.detections.map(d=>`<div class="det-item"><span style="font-family:\'Share Tech Mono\',monospace;font-size:12px">${d.label}</span><span class="threat-badge threat-${d.threat_level}" style="font-size:9px;padding:2px 5px">${d.threat_level}</span></div>`).join('')+'</div>';
+      }
+      onDetectionUpdate({module:MODULE_NAME});
+    } else {
+      status.style.color='var(--red)';
+      status.textContent='✗ '+(data.error||'Error');
+    }
+  }).catch(e=>{ status.style.color='var(--red)'; status.textContent='✗ '+e.message; });
+}
+
+function clearModuleDetections(){
+  if(!confirm('Clear detections for this module?')) return;
+  fetch('/api/clear_detections',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({module:MODULE_NAME})})
+    .then(()=>{ onDetectionUpdate({module:MODULE_NAME}); showAlert('Cleared','low'); });
+}
+{% endblock %}

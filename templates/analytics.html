@@ -1,0 +1,696 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block page_title %}ANALYTICS & INSIGHTS{% endblock %}
+{% block breadcrumb %}VAJRA-X / ANALYTICS / REAL-TIME DATA{% endblock %}
+
+{% block extra_head %}
+<style>
+.analytics-controls{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:18px;gap:12px;flex-wrap:wrap;
+}
+
+.date-filter{
+  display:flex;align-items:center;gap:8px;
+}
+
+.date-filter input{
+  padding:8px 12px;background:var(--card);border:1px solid var(--border);
+  color:var(--text);font-family:'Rajdhani',sans-serif;font-size:12px;
+  border-radius:2px;transition:all 0.2s;
+}
+
+.date-filter input:focus{
+  outline:none;border-color:var(--blue);box-shadow:0 0 8px rgba(0,207,255,0.2);
+}
+
+.btn-export-csv{
+  display:flex;align-items:center;gap:6px;
+  padding:8px 16px;background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.3);
+  color:var(--green);font-size:12px;cursor:pointer;border-radius:2px;
+  transition:all 0.2s;font-family:'Share Tech Mono',monospace;font-weight:600;
+  letter-spacing:0.05em;
+}
+
+.btn-export-csv:hover{
+  background:rgba(0,255,136,0.15);border-color:rgba(0,255,136,0.6);
+  box-shadow:0 0 10px rgba(0,255,136,0.2);
+}
+
+.charts-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(500px,1fr));gap:16px;
+  margin-bottom:20px;
+}
+
+.chart-card{
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 20px;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.chart-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(6, 182, 212, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 0 1px rgba(6, 182, 212, 0.2);
+}
+
+.chart-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;
+  height:2px;background:linear-gradient(90deg, transparent, var(--blue), transparent);
+  opacity: 0.4;
+}
+
+.chart-title{
+  font-family:'Orbitron',monospace;font-size:12px;letter-spacing:0.1em;
+  color:var(--blue);margin-bottom:16px;display:flex;align-items:center;gap:8px;
+  font-weight: 700;
+}
+
+.chart-title::before{
+  content:'';width:7px;height:7px;background:var(--blue);
+  border-radius:50%;box-shadow:0 0 8px var(--blue), 0 0 16px rgba(6, 182, 212, 0.3);
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes dot-pulse {
+  0%, 100% { box-shadow: 0 0 6px var(--blue); }
+  50% { box-shadow: 0 0 12px var(--blue), 0 0 20px rgba(6, 182, 212, 0.4); }
+}
+
+canvas{max-height:320px}
+
+.stat-grid-mini{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;
+  margin-top:16px;
+}
+
+.stat-mini-card{
+  background: rgba(6, 182, 212, 0.04);
+  border: 1px solid rgba(6, 182, 212, 0.1);
+  border-left: 3px solid var(--blue);
+  padding: 14px;
+  border-radius: 4px;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.stat-mini-card:hover{
+  background: rgba(6, 182, 212, 0.08);
+  border-color: rgba(6, 182, 212, 0.25);
+  border-left-color: var(--blue);
+  transform: translateX(2px);
+}
+
+.stat-mini-label{font-size:10px;color:var(--dim);letter-spacing:0.1em;font-family:'Share Tech Mono',monospace;font-weight:600}
+
+.stat-mini-value{
+  font-size:24px;font-weight:800;color:var(--blue);margin-top:6px;
+  font-family:'Exo 2',sans-serif;
+  text-shadow: 0 0 8px rgba(6, 182, 212, 0.15);
+}
+
+.stat-mini-change{
+  font-size:11px;color:var(--green);margin-top:4px;font-family:'Share Tech Mono',monospace;
+  opacity: 0.8;
+}
+
+.table-responsive{
+  overflow-x:auto;margin-top:16px;
+}
+
+table{
+  width:100%;border-collapse:collapse;
+  font-size:12px;font-family:'Share Tech Mono',monospace;
+}
+
+table thead{
+  background:rgba(6, 182, 212, 0.06);border-bottom:1px solid rgba(6, 182, 212, 0.1);
+}
+
+table th{
+  padding:12px;text-align:left;color:var(--blue);font-weight:600;
+  letter-spacing:0.08em;font-size:10px;
+}
+
+table td{
+  padding:12px;border-bottom:1px solid var(--border);
+  font-size:12px;
+}
+
+table tbody tr{
+  transition: background 0.15s ease;
+}
+
+table tbody tr:hover{
+  background:rgba(6, 182, 212, 0.06);
+}
+
+.threat-badge{
+  padding:4px 8px;border-radius:2px;font-size:11px;
+  font-weight:600;letter-spacing:0.05em;
+}
+
+.threat-HIGH{
+  background:rgba(255,0,51,0.15);color:#ff4466;
+}
+
+.threat-MEDIUM{
+  background:rgba(255,165,0,0.15);color:var(--orange);
+}
+
+.threat-LOW{
+  background:rgba(0,255,136,0.15);color:var(--green);
+}
+
+.confidence-bar{
+  display:inline-block;height:4px;background:var(--border);
+  border-radius:2px;width:60px;overflow:hidden;vertical-align:middle;
+}
+
+.confidence-fill{
+  height:100%;background:var(--blue);border-radius:2px;
+}
+
+.loading{
+  text-align:center;padding:40px;color:var(--dim);
+}
+
+.loading::after{
+  content:'';display:inline-block;width:12px;height:12px;
+  border:2px solid var(--dim);border-top-color:var(--blue);
+  border-radius:50%;animation:spin 0.8s linear infinite;margin-left:8px;
+}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:768px){
+  .charts-grid{grid-template-columns:1fr}
+  .analytics-controls{flex-direction:column;align-items:stretch}
+  .date-filter{flex-direction:column;width:100%}
+}
+
+/* Scrollable table container */
+.table-responsive{
+  overflow-x:auto;
+  max-height: 420px;
+  overflow-y: auto;
+  margin-top:16px;
+}
+
+.table-responsive::-webkit-scrollbar { width: 4px; }
+.table-responsive::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.25); border-radius: 4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Analytics Controls -->
+<div class="analytics-controls">
+  <div class="date-filter">
+    <label style="font-size:12px;color:var(--dim)">FROM:</label>
+    <input type="date" id="dateFrom" value="{{ date_from }}">
+    <label style="font-size:12px;color:var(--dim)">TO:</label>
+    <input type="date" id="dateTo" value="{{ date_to }}">
+    <button class="btn" style="padding:8px 16px;background:rgba(0,207,255,0.1);border:1px solid var(--border);color:var(--blue);cursor:pointer;border-radius:2px;font-weight:600;" onclick="filterData()">APPLY FILTER</button>
+  </div>
+  <button class="btn-export-csv" onclick="exportToCSV()">📥 EXPORT CSV</button>
+</div>
+
+<!-- Main Charts Grid -->
+<div class="charts-grid">
+  
+  <!-- Chart 1: Detection Trends -->
+  <div class="chart-card">
+    <div class="chart-title">🔍 DETECTION TRENDS (24H)</div>
+    <canvas id="trendsChart"></canvas>
+    <div class="stat-grid-mini">
+      <div class="stat-mini-card">
+        <div class="stat-mini-label">PEAK HOUR</div>
+        <div class="stat-mini-value" id="peakHour">14:00</div>
+        <div class="stat-mini-change">+45 detections</div>
+      </div>
+      <div class="stat-mini-card">
+        <div class="stat-mini-label">AVG/HOUR</div>
+        <div class="stat-mini-value" id="avgHour">18.5</div>
+        <div class="stat-mini-change">detection/hour</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart 2: Threat Distribution -->
+  <div class="chart-card">
+    <div class="chart-title">⚠️ THREAT DISTRIBUTION</div>
+    <canvas id="threatChart"></canvas>
+    <div class="stat-grid-mini">
+      <div class="stat-mini-card">
+        <div class="stat-mini-label">CRITICAL</div>
+        <div class="stat-mini-value" id="criticalCount" style="color:#ff4466">0</div>
+        <div class="stat-mini-change">require action</div>
+      </div>
+      <div class="stat-mini-card">
+        <div class="stat-mini-label">ALERT RATE</div>
+        <div class="stat-mini-value" id="alertRate" style="color:var(--orange)">0%</div>
+        <div class="stat-mini-change">of total detections</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart 3: Module Performance -->
+  <div class="chart-card">
+    <div class="chart-title">📊 MODULE PERFORMANCE</div>
+    <canvas id="performanceChart"></canvas>
+    <div class="stat-grid-mini">
+      <div class="stat-mini-card">
+        <div class="stat-mini-label">TOP MODULE</div>
+        <div class="stat-mini-value" id="topModule" style="font-size:14px">-</div>
+        <div class="stat-mini-change">highest accuracy</div>
+      </div>
+      <div class="stat-mini-card">
+        <div class="stat-mini-label">AVG ACCURACY</div>
+        <div class="stat-mini-value" id="avgAccuracy" style="color:var(--green)">-</div>
+        <div class="stat-mini-change">across all modules</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart 4: Confidence Distribution -->
+  <div class="chart-card">
+    <div class="chart-title">🎯 CONFIDENCE SCORE DISTRIBUTION</div>
+    <canvas id="confidenceChart"></canvas>
+    <div class="stat-grid-mini">
+      <div class="stat-mini-card">
+        <div class="stat-mini-label">HIGH CONF</div>
+        <div class="stat-mini-value" id="highConf" style="color:var(--green)">0%</div>
+        <div class="stat-mini-change">>85% confidence</div>
+      </div>
+      <div class="stat-mini-card">
+        <div class="stat-mini-label">LOW CONF</div>
+        <div class="stat-mini-value" id="lowConf" style="color:var(--orange)">0%</div>
+        <div class="stat-mini-change"><60% confidence</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Recent Detections Table -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">📋 RECENT DETECTIONS</span>
+    <span style="font-size:10px;color:var(--dim);font-family:'Share Tech Mono',monospace">Last 50 detections across all modules</span>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>TIMESTAMP</th>
+            <th>MODULE</th>
+            <th>OBJECT</th>
+            <th>CONFIDENCE</th>
+            <th>THREAT</th>
+            <th>ACTION</th>
+          </tr>
+        </thead>
+        <tbody id="detectionTable">
+          <tr>
+            <td colspan="6" style="text-align:center;padding:20px;color:var(--dim)">
+              <div class="loading"></div>
+              Loading detection data...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_scripts %}
+// ============= CHART CONFIGURATIONS =============
+// Professional colors matching the dark theme
+const chartColors = {
+  primary: '#00cfff',
+  accent: '#ff0055',
+  success: '#00ffcc',
+  warning: '#ffaa00',
+  bg: '#030712',
+  border: 'rgba(0, 207, 255, 0.15)',
+};
+
+let trendsChart, threatChart, performanceChart, confidenceChart;
+
+async function loadAnalyticsData(fromDate, toDate) {
+  try {
+    // Check if the argument is a string (ignores Event objects passed by window onload event)
+    const from = (typeof fromDate === 'string') ? fromDate : document.getElementById('dateFrom').value;
+    const to   = (typeof toDate === 'string') ? toDate : document.getElementById('dateTo').value;
+    const url  = `/api/analytics?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (!data.success) throw new Error(data.error);
+
+    initCharts(data);
+    populateDetectionTable(data.detections);
+    updateMetrics(data);
+  } catch(error) {
+    console.error('Analytics Error:', error);
+    showNotification('Failed to load analytics: ' + error.message, 'error');
+  }
+}
+
+function initCharts(data) {
+  // Destroy existing chart instances before rebuilding to prevent Chart.js reuse errors
+  if (trendsChart && typeof trendsChart.destroy === 'function') trendsChart.destroy();
+  if (threatChart && typeof threatChart.destroy === 'function') threatChart.destroy();
+  if (performanceChart && typeof performanceChart.destroy === 'function') performanceChart.destroy();
+  if (confidenceChart && typeof confidenceChart.destroy === 'function') confidenceChart.destroy();
+
+  // 1. TRENDS CHART
+  const ctx1 = document.getElementById('trendsChart').getContext('2d');
+  trendsChart = new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels: data.trends.labels,
+      datasets: [{
+        label: 'Detections',
+        data: data.trends.values,
+        borderColor: chartColors.primary,
+        backgroundColor: 'rgba(0,207,255,0.06)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        pointBackgroundColor: chartColors.primary,
+        pointBorderColor: '#030712',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {legend: {display: false}},
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: {color: chartColors.border, drawBorder: false},
+          ticks: {color: chartColors.primary},
+        },
+        x: {
+          grid: {display: false},
+          ticks: {color: chartColors.primary},
+        }
+      }
+    }
+  });
+
+  // 2. THREAT DISTRIBUTION CHART
+  const ctx2 = document.getElementById('threatChart').getContext('2d');
+  threatChart = new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+      labels: ['HIGH', 'MEDIUM', 'LOW'],
+      datasets: [{
+        data: [data.threats.high, data.threats.medium, data.threats.low],
+        backgroundColor: [
+          'rgba(255,0,85,0.2)',
+          'rgba(255,170,0,0.2)',
+          'rgba(0,255,204,0.2)'
+        ],
+        borderColor: [
+          chartColors.accent,
+          chartColors.warning,
+          chartColors.success
+        ],
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {legend: {labels: {color: chartColors.primary}}}
+    }
+  });
+
+  // 3. MODULE PERFORMANCE CHART
+  const ctx3 = document.getElementById('performanceChart').getContext('2d');
+  performanceChart = new Chart(ctx3, {
+    type: 'bar',
+    data: {
+      labels: data.modules.names,
+      datasets: [{
+        label: 'Detections Count',
+        data: data.modules.counts,
+        backgroundColor: 'rgba(0, 207, 255, 0.35)',
+        borderColor: chartColors.primary,
+        borderWidth: 1.5,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: true,
+      scales: {
+        x: {
+          grid: {color: chartColors.border},
+          ticks: {color: chartColors.primary},
+        },
+        y: {
+          grid: {display: false},
+          ticks: {color: chartColors.primary},
+        }
+      },
+      plugins: {legend: {display: false}}
+    }
+  });
+
+  // 4. CONFIDENCE DISTRIBUTION CHART
+  const ctx4 = document.getElementById('confidenceChart').getContext('2d');
+  confidenceChart = new Chart(ctx4, {
+    type: 'radar',
+    data: {
+      labels: ['60-70%', '70-80%', '80-90%', '90-95%', '>95%'],
+      datasets: [{
+        label: 'Count',
+        data: data.confidence.distribution,
+        borderColor: chartColors.primary,
+        backgroundColor: 'rgba(0,207,255,0.06)',
+        pointBackgroundColor: chartColors.primary,
+        pointBorderColor: '#030712',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {legend: {labels: {color: chartColors.primary}}},
+      scales: {
+        r: {
+          grid: {color: chartColors.border},
+          angleLines: {color: chartColors.border},
+          pointLabels: {color: chartColors.primary},
+          ticks: {color: chartColors.primary, backdropColor: 'transparent'},
+        }
+      }
+    }
+  });
+}
+
+function populateDetectionTable(detections) {
+  const tbody = document.getElementById('detectionTable');
+  
+  if (!detections || detections.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--dim)">No detections found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = detections.map(det => `
+    <tr>
+      <td>${new Date(det.timestamp).toLocaleString()}</td>
+      <td><span style="color:var(--blue);font-weight:600">${det.module_name}</span></td>
+      <td>${det.object_detected}</td>
+      <td>
+        <div class="confidence-bar">
+          <div class="confidence-fill" style="width:${det.confidence * 100}%"></div>
+        </div>
+        ${(det.confidence * 100).toFixed(1)}%
+      </td>
+      <td><span class="threat-badge threat-${det.threat_level}">${det.threat_level}</span></td>
+      <td><button style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:11px" onclick="viewDetails(${det.id})">VIEW</button></td>
+    </tr>
+  `).join('');
+}
+
+function updateMetrics(data) {
+  document.getElementById('peakHour').textContent = data.metrics.peakHour;
+  document.getElementById('avgHour').textContent = data.metrics.avgPerHour.toFixed(1);
+  document.getElementById('criticalCount').textContent = data.threats.high;
+  document.getElementById('alertRate').textContent = data.metrics.alertRate.toFixed(1) + '%';
+  document.getElementById('topModule').textContent = data.metrics.topModule || '-';
+  document.getElementById('avgAccuracy').textContent = data.metrics.avgAccuracy + '%';
+  document.getElementById('highConf').textContent = data.metrics.highConfidence.toFixed(1) + '%';
+  document.getElementById('lowConf').textContent = data.metrics.lowConfidence.toFixed(1) + '%';
+}
+
+function filterData() {
+  const from = document.getElementById('dateFrom').value;
+  const to   = document.getElementById('dateTo').value;
+
+  if (!from || !to) {
+    showNotification('Please select both dates', 'warning');
+    return;
+  }
+  if (from > to) {
+    showNotification('Start date must be before end date', 'warning');
+    return;
+  }
+
+  // Bug #8: Pass selected dates to loadAnalyticsData
+  loadAnalyticsData(from, to);
+}
+
+function exportToCSV() {
+  const rows = Array.from(document.querySelectorAll('#detectionTable tr'));
+  
+  if (rows.length === 0 || rows[0].querySelector('td[colspan]')) {
+    showNotification('No data available to export', 'warning');
+    return;
+  }
+
+  // Professional corporate logging headers
+  const headers = ['Timestamp (UTC)', 'Module', 'Object Detected', 'Confidence Score', 'Threat Level'];
+
+  const csvContent = [
+    headers.map(h => `"${h}"`).join(','),
+    ...rows.map(tr => {
+      const tds = tr.querySelectorAll('td');
+      if (tds.length < 5) return null;
+
+      // Extract and clean values
+      const rawTimestamp = tds[0].textContent.trim();
+      const module = tds[1].textContent.trim();
+      const object = tds[2].textContent.trim();
+      
+      // Extract numeric percentage cleanly, ignoring bar layouts
+      const confidenceText = tds[3].textContent.replace(/[\s\r\n\t]/g, '');
+      const match = confidenceText.match(/(\d+(\.\d+)?%)/);
+      const confidence = match ? match[1] : '0.0%';
+      
+      const threat = tds[4].textContent.trim();
+
+      // Properly escape fields
+      return [rawTimestamp, module, object, confidence, threat]
+        .map(val => `"${val.replace(/"/g, '""')}"`)
+        .join(',');
+    }).filter(row => row !== null)
+  ].join('\r\n');
+
+  const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `vajrax_detections_report_${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  
+  showNotification('CSV exported successfully', 'success');
+}
+
+function showNotification(msg, type = 'info') {
+  if (typeof showAlert === 'function') {
+    const lvlMap = {error: 'high', warning: 'medium', success: 'low', info: 'low'};
+    showAlert(msg, lvlMap[type] || 'low');
+  } else {
+    console.log(`[${type.toUpperCase()}] ${msg}`);
+  }
+}
+
+// Bug #9: Implemented viewDetails() as a proper modal
+function viewDetails(detectionId) {
+  // Build or reuse modal
+  let modal = document.getElementById('detailModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'detailModal';
+    modal.style.cssText = [
+      'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9998;',
+      'display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)'
+    ].join('');
+    modal.innerHTML = `
+      <div style="background:#111827;border:1px solid rgba(6,182,212,0.3);border-radius:8px;
+                  padding:28px;max-width:480px;width:90%;position:relative;
+                  box-shadow:0 20px 60px rgba(0,0,0,0.6)">
+        <button onclick="document.getElementById('detailModal').style.display='none'"
+                style="position:absolute;top:14px;right:16px;background:none;border:none;
+                       color:#9ca3af;font-size:18px;cursor:pointer">✕</button>
+        <div style="font-family:'Orbitron',monospace;font-size:12px;color:#06b6d4;
+                    letter-spacing:0.15em;margin-bottom:20px">◈ DETECTION RECORD</div>
+        <div id="detailContent" style="font-family:'Share Tech Mono',monospace;font-size:13px">
+          <div style="text-align:center;color:#6b7280;padding:20px">Loading…</div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    // Close on backdrop click
+    modal.addEventListener('click', e => { if (e.target === modal) modal.style.display='none'; });
+  }
+  modal.style.display = 'flex';
+  document.getElementById('detailContent').innerHTML = '<div style="text-align:center;color:#6b7280;padding:20px">Loading…</div>';
+
+  // Fetch detections and find the one we want
+  fetch(`/api/detections?limit=500`)
+    .then(r => r.json())
+    .then(res => {
+      const det = (res.data || []).find(d => d.id == detectionId);
+      if (!det) {
+        document.getElementById('detailContent').innerHTML = '<div style="color:#ef4444">Detection not found.</div>';
+        return;
+      }
+      const threatColor = {HIGH:'#ef4444', MEDIUM:'#f59e0b', LOW:'#10b981'};
+      document.getElementById('detailContent').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div>
+            <div style="font-size:9px;color:#6b7280;letter-spacing:0.15em;margin-bottom:4px">ID</div>
+            <div style="color:#f3f4f6">#${det.id}</div>
+          </div>
+          <div>
+            <div style="font-size:9px;color:#6b7280;letter-spacing:0.15em;margin-bottom:4px">MODULE</div>
+            <div style="color:#06b6d4">${det.module_name}</div>
+          </div>
+          <div>
+            <div style="font-size:9px;color:#6b7280;letter-spacing:0.15em;margin-bottom:4px">OBJECT</div>
+            <div style="color:#f3f4f6">${det.object_detected}</div>
+          </div>
+          <div>
+            <div style="font-size:9px;color:#6b7280;letter-spacing:0.15em;margin-bottom:4px">CONFIDENCE</div>
+            <div style="color:#10b981">${(det.confidence*100).toFixed(2)}%</div>
+          </div>
+          <div>
+            <div style="font-size:9px;color:#6b7280;letter-spacing:0.15em;margin-bottom:4px">THREAT LEVEL</div>
+            <div style="color:${threatColor[det.threat_level]||'#9ca3af'};font-weight:bold">${det.threat_level}</div>
+          </div>
+          <div>
+            <div style="font-size:9px;color:#6b7280;letter-spacing:0.15em;margin-bottom:4px">TIMESTAMP</div>
+            <div style="color:#9ca3af">${det.timestamp}</div>
+          </div>
+        </div>`;
+    })
+    .catch(() => {
+      document.getElementById('detailContent').innerHTML = '<div style="color:#ef4444">Error loading detection.</div>';
+    });
+}
+
+// Load data on page load
+window.addEventListener('load', loadAnalyticsData);
+
+// Auto-refresh every 5 minutes
+setInterval(loadAnalyticsData, 300000);
+{% endblock %}

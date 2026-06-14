@@ -1,0 +1,697 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}LIVE DASHBOARD{% endblock %}
+{% block breadcrumb %}VAJRA-X / OVERVIEW{% endblock %}
+
+{% block extra_head %}
+<style>
+.dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.main-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+.module-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+
+.module-btn {
+  background: color-mix(in srgb, var(--module-color) 5%, var(--card));
+  border: 1px solid var(--border);
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 2px 14px;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  border-radius: 6px;
+  backdrop-filter: blur(5px);
+}
+
+.module-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--module-color, var(--blue));
+  opacity: 0.6;
+}
+
+.module-btn:hover {
+  border-color: var(--module-color, var(--blue));
+  background: color-mix(in srgb, var(--module-color) 12%, var(--card));
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.module-btn .m-icon {
+  grid-row: 1 / span 2;
+  font-size: 32px;
+  color: var(--module-color, var(--blue));
+  transition: transform 0.2s;
+  width: 36px;
+  text-align: center;
+}
+
+.module-btn:hover .m-icon {
+  transform: scale(1.1);
+}
+
+.module-btn .m-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.module-btn .m-sub {
+  font-size: 9px;
+  color: var(--dim);
+}
+
+.module-btn .m-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border);
+  font-size: 9px;
+  font-family: 'Share Tech Mono', monospace;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--module-color, var(--blue));
+  font-weight: bold;
+}
+
+.live-feed-area {
+  background: #02060a;
+  border: 1px solid var(--border);
+  position: relative;
+  min-height: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.live-feed-area .corner-tl,
+.live-feed-area .corner-tr,
+.live-feed-area .corner-bl,
+.live-feed-area .corner-br {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: var(--blue);
+  border-style: solid;
+  z-index: 8;
+  pointer-events: none;
+}
+.live-feed-area .corner-tl { top: 12px; left: 12px; border-width: 2px 0 0 2px; }
+.live-feed-area .corner-tr { top: 12px; right: 12px; border-width: 2px 2px 0 0; }
+.live-feed-area .corner-bl { bottom: 12px; left: 12px; border-width: 0 0 2px 2px; }
+.live-feed-area .corner-br { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; }
+
+/* Corner bracket overlay */
+.live-feed-area::after {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border: 1px solid rgba(0, 207, 255, 0.05);
+  pointer-events: none;
+}
+
+.feed-placeholder {
+  text-align: center;
+  color: var(--dim);
+  font-family: 'Share Tech Mono', monospace;
+  z-index: 2;
+}
+
+.feed-placeholder .fp-icon {
+  font-size: 52px;
+  margin-bottom: 12px;
+  opacity: 0.15;
+  animation: pulse-logo 2s infinite;
+}
+
+@keyframes pulse-logo {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.3; }
+}
+
+.feed-placeholder {
+  position: relative;
+  overflow: hidden;
+  background-image: 
+    linear-gradient(rgba(0, 207, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 207, 255, 0.03) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+.feed-placeholder::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: var(--blue);
+  box-shadow: var(--glow-blue);
+  animation: scanHUD 4s linear infinite;
+  opacity: 0.6;
+}
+@keyframes scanHUD {
+  0% { top: -5%; }
+  100% { top: 105%; }
+}
+.feed-placeholder p {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  position: relative;
+  z-index: 2;
+}
+
+.live-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: rgba(255, 0, 85, 0.85);
+  color: #fff;
+  font-size: 9px;
+  padding: 3px 8px;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.1em;
+  display: none;
+  align-items: center;
+  gap: 5px;
+  border-radius: 3px;
+  z-index: 10;
+  font-weight: bold;
+  box-shadow: var(--glow-red);
+}
+
+.live-badge.show { display: flex; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: blink 1s infinite; }
+
+#liveImage { max-width: 100%; max-height: 480px; display: none; z-index: 5; border-radius: 2px; }
+#liveDetList { max-height: 220px; overflow-y: auto; }
+
+.det-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+  animation: rowIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
+}
+
+.det-row:last-child { border-bottom: none; }
+.det-label { font-family: 'Share Tech Mono', monospace; color: var(--text); font-weight: 500; }
+.det-conf { color: var(--dim); font-size: 11px; font-family: 'Share Tech Mono', monospace; }
+
+.health-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 12px; }
+.health-bar { height: 8px; background: rgba(0,0,0,0.4); border-radius: 4px; margin-top: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.04); position: relative; }
+.health-fill { height: 100%; border-radius: 4px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
+.health-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent); animation: health-shimmer 2s ease-in-out infinite; }
+@keyframes health-shimmer { 0%,100% { opacity: 0; } 50% { opacity: 1; } }
+
+#recentDetTable tbody tr { animation: rowIn 0.3s ease-out; }
+
+/* Drag and drop zone styling */
+.drop-zone {
+  border: 1px dashed var(--border);
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(0,207,255,0.01);
+}
+.drop-zone:hover {
+  border-color: var(--blue);
+  background: rgba(0, 207, 255, 0.05);
+  box-shadow: inset 0 0 10px rgba(0,207,255,0.1);
+}
+
+@media(max-width: 1024px) {
+  .module-grid { grid-template-columns: repeat(3, 1fr); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- STAT CARDS -->
+<div class="dash-grid">
+  <div class="stat-card blue">
+    <div class="stat-label">TOTAL DETECTIONS</div>
+    <!-- Bug #1: Use 'total' passed from route instead of summing empty stats -->
+    <div class="stat-value blue" id="statTotal">{{ total }}</div>
+    <div style="display:flex; align-items:center; margin-top:8px;">
+      <div class="stat-sub" style="margin-top:0;">All time</div>
+      <div class="trend-badge trend-up">LIVE</div>
+    </div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-label">HIGH THREATS</div>
+    <div class="stat-value red" id="statHigh">
+      {% set found = namespace(v=0) %}{% for s in stats %}{% if s.threat_level == 'HIGH' %}{% set found.v = s.cnt %}{% endif %}{% endfor %}{{ found.v }}
+    </div>
+    <div style="display:flex; align-items:center; margin-top:8px;">
+      <div class="stat-sub" style="margin-top:0;">Critical alerts</div>
+    </div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-label">MEDIUM THREATS</div>
+    <div class="stat-value orange" id="statMedium">
+      {% set found = namespace(v=0) %}{% for s in stats %}{% if s.threat_level == 'MEDIUM' %}{% set found.v = s.cnt %}{% endif %}{% endfor %}{{ found.v }}
+    </div>
+    <div style="display:flex; align-items:center; margin-top:8px;">
+      <div class="stat-sub" style="margin-top:0;">Warning alerts</div>
+    </div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-label">LOW THREATS</div>
+    <div class="stat-value green" id="statLow">
+      {% set found = namespace(v=0) %}{% for s in stats %}{% if s.threat_level == 'LOW' %}{% set found.v = s.cnt %}{% endif %}{% endfor %}{{ found.v }}
+    </div>
+    <div style="display:flex; align-items:center; margin-top:8px;">
+      <div class="stat-sub" style="margin-top:0;">Info alerts</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODULE QUICK ACCESS -->
+<div class="card" style="margin-bottom:14px">
+  <div class="card-header">
+    <span class="card-title">⊞ SELECT MODULE</span>
+    <span style="font-size:10px;color:var(--dim);font-family:'Share Tech Mono',monospace">CLICK TO ACTIVATE MODULE</span>
+  </div>
+  <div class="card-body" style="padding:12px">
+    <div class="module-grid">
+      <a href="/module/border" class="module-btn" style="--module-color:#ff4444">
+        <span class="m-icon">⊘</span>
+        <span class="m-title">BORDER SECURITY</span>
+        <span class="m-sub">Perimeter & intrusion</span>
+      </a>
+      <a href="/module/disaster" class="module-btn" style="--module-color:#ff9500">
+        <span class="m-icon">⚡</span>
+        <span class="m-title">DISASTER DETECT</span>
+        <span class="m-sub">Flood / Fire / Smoke</span>
+      </a>
+      <a href="/module/railway" class="module-btn" style="--module-color:#ffdd00">
+        <span class="m-icon">◈</span>
+        <span class="m-title">RAILWAY SAFETY</span>
+        <span class="m-sub">Track intrusion</span>
+      </a>
+      <a href="/module/smart_city" class="module-btn" style="--module-color:#00ff88">
+        <span class="m-icon">◉</span>
+        <span class="m-title">SMART CITY</span>
+        <span class="m-sub">Urban surveillance</span>
+      </a>
+      <a href="/module/mining" class="module-btn" style="--module-color:#00cfff">
+        <span class="m-icon">⬡</span>
+        <span class="m-title">MINING ACTIVITY</span>
+        <span class="m-sub">Site monitoring</span>
+      </a>
+      <a href="/module/forest" class="module-btn" style="--module-color:#00cc66">
+        <span class="m-icon">◆</span>
+        <span class="m-title">FOREST MONITOR</span>
+        <span class="m-sub">Wildlife & fire</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN GRID: Live Feed + Detections -->
+<div class="main-grid">
+
+  <!-- LEFT: Live Feed -->
+  <div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header">
+        <span class="card-title">📹 LIVE CAMERA FEED</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-success" id="btnStartCam" onclick="startCamera()">▶ START CAMERA</button>
+          <button class="btn btn-danger" id="btnStopCam" onclick="stopCamera()" disabled>■ STOP</button>
+        </div>
+      </div>
+      <div class="live-feed-area" id="liveFeedArea">
+        <div class="corner-tl"></div>
+        <div class="corner-tr"></div>
+        <div class="corner-bl"></div>
+        <div class="corner-br"></div>
+        <div class="live-badge" id="liveBadge"><span class="live-dot"></span> LIVE</div>
+        <div class="feed-placeholder" id="feedPlaceholder">
+          <div class="fp-icon">📷</div>
+          <p>CAMERA INACTIVE</p>
+          <p style="margin-top:6px;font-size:10px">Click START CAMERA or use WebRTC below</p>
+        </div>
+        <img id="liveImage" alt="Live feed">
+        <!-- WebRTC fallback -->
+        <video id="webcamVideo" style="max-width:100%;display:none" autoplay muted playsinline></video>
+        <canvas id="processCanvas" style="display:none"></canvas>
+      </div>
+      <div style="padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center">
+        <button class="btn btn-primary" id="btnWebcam" onclick="startWebcam()">🌐 USE BROWSER WEBCAM</button>
+        <button class="btn btn-danger" id="btnStopWebcam" onclick="stopWebcam()" style="display:none">■ STOP WEBCAM</button>
+        <select id="moduleSelect" style="background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 10px;font-size:12px;font-family:'Share Tech Mono',monospace;border-radius:2px">
+          <option value="smart_city">Smart City</option>
+          <option value="border">Border Security</option>
+          <option value="disaster">Disaster Detection</option>
+          <option value="railway">Railway Safety</option>
+          <option value="mining">Mining Activity</option>
+          <option value="forest">Forest Monitor</option>
+        </select>
+        <span id="fpsCounter" style="font-size:10px;color:var(--dim);font-family:'Share Tech Mono',monospace"></span>
+      </div>
+    </div>
+
+    <!-- RECENT DETECTIONS TABLE -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📋 RECENT DETECTIONS</span>
+        <button class="btn btn-danger" onclick="clearDetections()" style="font-size:10px;padding:4px 10px">🗑 CLEAR</button>
+      </div>
+      <div style="padding:0; max-height: 360px; overflow-y: auto;">
+        <table class="det-table" id="recentDetTable">
+          <thead>
+            <tr>
+              <th>#</th><th>MODULE</th><th>OBJECT</th><th>CONFIDENCE</th><th>THREAT</th><th>TIME</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in detections %}
+            <tr>
+              <td>{{ d.id }}</td>
+              <td><span class="mod-badge">{{ d.module_name }}</span></td>
+              <td>{{ d.object_detected }}</td>
+              <td>{{ "%.0f"|format(d.confidence * 100) }}%</td>
+              <td><span class="threat-badge threat-{{ d.threat_level }}" style="font-size:10px;padding:2px 6px">{{ d.threat_level }}</span></td>
+              <td style="font-size:10px;color:var(--dim)" class="utc-time" data-utc="{{ d.timestamp }}" data-format="datetime">{{ d.timestamp }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="text-align:center;color:var(--dim);padding:20px;font-family:'Share Tech Mono',monospace;font-size:11px">NO DETECTIONS YET</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div>
+    <!-- Live Detection Results -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header">
+        <span class="card-title">⚡ LIVE RESULTS</span>
+        <span id="liveCount" style="font-size:10px;color:var(--dim);font-family:'Share Tech Mono',monospace">0 objects</span>
+      </div>
+      <div id="liveDetList" style="padding:0;min-height:80px">
+        <div style="padding:20px;text-align:center;color:var(--dim);font-size:11px;font-family:'Share Tech Mono',monospace">
+          START CAMERA TO SEE LIVE DETECTIONS
+        </div>
+      </div>
+    </div>
+
+    <!-- System Health -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header"><span class="card-title">💻 SYSTEM HEALTH</span></div>
+      <div class="card-body">
+        <div class="health-item">
+          <span style="font-size:11px;font-family:'Share Tech Mono',monospace;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);display:inline-block"></span>AI ENGINE</span>
+          <span style="font-size:11px;color:var(--green);font-family:'Share Tech Mono',monospace;font-weight:600">ONLINE</span>
+        </div>
+        <div class="health-bar"><div class="health-fill" style="width:95%;background:linear-gradient(90deg, var(--green), #34d399);box-shadow:0 0 12px var(--green)"></div></div>
+        <div style="margin-top:10px"></div>
+        <div class="health-item">
+          <span style="font-size:11px;font-family:'Share Tech Mono',monospace;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);display:inline-block"></span>DATABASE</span>
+          <span style="font-size:11px;color:var(--green);font-family:'Share Tech Mono',monospace;font-weight:600">CONNECTED</span>
+        </div>
+        <div class="health-bar"><div class="health-fill" style="width:100%;background:linear-gradient(90deg, var(--green), #34d399);box-shadow:0 0 12px var(--green)"></div></div>
+        <div style="margin-top:10px"></div>
+        <div class="health-item">
+          <span style="font-size:11px;font-family:'Share Tech Mono',monospace;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);display:inline-block" id="wsLed"></span>WEBSOCKET</span>
+          <span style="font-size:11px;color:var(--green);font-family:'Share Tech Mono',monospace;font-weight:600" id="wsHealth">CONNECTED</span>
+        </div>
+        <div class="health-bar"><div id="wsBar" class="health-fill" style="width:100%;background:linear-gradient(90deg, var(--green), #34d399);box-shadow:0 0 12px var(--green)"></div></div>
+      </div>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header"><span class="card-title">📂 MANUAL UPLOAD</span></div>
+      <div class="card-body">
+        <div id="dropZone" style="border:1px dashed var(--border2);padding:20px;text-align:center;cursor:pointer;border-radius:2px;transition:all 0.2s" 
+             ondragover="event.preventDefault();this.style.borderColor='var(--blue)'"
+             ondragleave="this.style.borderColor='var(--border2)'"
+             ondrop="handleDrop(event)">
+          <div style="font-size:24px;margin-bottom:8px">📁</div>
+          <div style="font-size:11px;color:var(--dim);font-family:'Share Tech Mono',monospace">DRAG & DROP OR CLICK</div>
+          <div style="font-size:10px;color:var(--dim);margin-top:4px">Images & Videos supported</div>
+          <input type="file" id="fileInput" style="display:none" accept="image/*,video/*" onchange="handleFileSelect(this)">
+        </div>
+        <div id="uploadStatus" style="margin-top:10px;font-size:11px;font-family:'Share Tech Mono',monospace;display:none"></div>
+        <div id="uploadResult" style="margin-top:10px;display:none"></div>
+      </div>
+    </div>
+
+    <!-- System Logs -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">📜 SYSTEM LOGS</span></div>
+      <div class="card-body" style="padding:10px">
+        <div class="log-list" id="logList">
+          {% for log in logs %}
+          <div class="log-item">
+            <span class="log-time utc-time" data-utc="{{ log.timestamp }}" data-format="datetime">{{ log.timestamp }}</span>{{ log.event }}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+// ── WEBCAM (Browser WebRTC) ──
+let webcamStream = null;
+let webcamInterval = null;
+let frameCount = 0;
+let lastFpsTime = Date.now();
+
+function startWebcam() {
+  navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false })
+    .then(stream => {
+      webcamStream = stream;
+      const video = document.getElementById('webcamVideo');
+      video.srcObject = stream;
+      video.style.display = 'block';
+      document.getElementById('liveImage').style.display = 'none';
+      document.getElementById('feedPlaceholder').style.display = 'none';
+      document.getElementById('liveBadge').classList.add('show');
+      document.getElementById('btnWebcam').style.display = 'none';
+      document.getElementById('btnStopWebcam').style.display = 'inline-flex';
+
+      // Process frames
+      webcamInterval = setInterval(() => {
+        processWebcamFrame();
+      }, 400); // Process ~2.5fps to reduce server load
+    })
+    .catch(err => {
+      showAlert('Webcam error: ' + err.message, 'high');
+    });
+}
+
+function stopWebcam() {
+  if (webcamStream) {
+    webcamStream.getTracks().forEach(t => t.stop());
+    webcamStream = null;
+  }
+  clearInterval(webcamInterval);
+  document.getElementById('webcamVideo').style.display = 'none';
+  document.getElementById('feedPlaceholder').style.display = 'block';
+  document.getElementById('liveBadge').classList.remove('show');
+  document.getElementById('btnWebcam').style.display = 'inline-flex';
+  document.getElementById('btnStopWebcam').style.display = 'none';
+  document.getElementById('fpsCounter').textContent = '';
+}
+
+function processWebcamFrame() {
+  const video = document.getElementById('webcamVideo');
+  const canvas = document.getElementById('processCanvas');
+  if (!video.videoWidth) return;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+  const frameData = canvas.toDataURL('image/jpeg', 0.7);
+  const module = document.getElementById('moduleSelect').value;
+
+  fetch('/api/process_webcam_frame', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ frame: frameData, module: module })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success && data.processed_frame) {
+      const img = document.getElementById('liveImage');
+      img.src = data.processed_frame;
+      img.style.display = 'block';
+      video.style.display = 'none';
+      updateLiveDetections(data.detections || []);
+      frameCount++;
+      const now = Date.now();
+      if (now - lastFpsTime > 3000) {
+        const fps = (frameCount / ((now - lastFpsTime) / 1000)).toFixed(1);
+        document.getElementById('fpsCounter').textContent = fps + ' FPS';
+        frameCount = 0; lastFpsTime = now;
+      }
+    }
+  })
+  .catch(e => console.warn('Frame error:', e));
+}
+
+// ── SOCKET CAMERA ──
+function startCamera() {
+  const module = document.getElementById('moduleSelect').value;
+  socket.emit('start_camera', { module: module });
+  document.getElementById('btnStartCam').disabled = true;
+  document.getElementById('btnStopCam').disabled = false;
+}
+
+function stopCamera() {
+  socket.emit('stop_camera');
+  document.getElementById('btnStartCam').disabled = false;
+  document.getElementById('btnStopCam').disabled = true;
+}
+
+socket.on('live_frame', function(d) {
+  document.getElementById('feedPlaceholder').style.display = 'none';
+  document.getElementById('liveBadge').classList.add('show');
+  const img = document.getElementById('liveImage');
+  img.src = 'data:image/jpeg;base64,' + d.frame;
+  img.style.display = 'block';
+  updateLiveDetections(d.detections || []);
+});
+
+function updateLiveDetections(detections) {
+  const list = document.getElementById('liveDetList');
+  document.getElementById('liveCount').textContent = detections.length + ' objects';
+  if (!detections.length) {
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--dim);font-size:11px;font-family:\'Share Tech Mono\',monospace">NO OBJECTS DETECTED</div>';
+    return;
+  }
+  list.innerHTML = detections.map(d => `
+    <div class="det-row">
+      <span class="det-label">${d.label}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="det-conf">${(d.confidence*100).toFixed(0)}%</span>
+        <span class="threat-badge threat-${d.threat_level}" style="font-size:9px;padding:2px 6px">${d.threat_level}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function onDetectionUpdate(d) {
+  // Refresh recent detections table
+  fetch('/api/detections?limit=15')
+    .then(r => r.json())
+    .then(res => {
+      const rows = res.data || [];  // Bug #15: API now returns paginated {data, pagination}
+      const tbody = document.querySelector('#recentDetTable tbody');
+      if (!rows.length) return;
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          <td>${r.id}</td>
+          <td><span class="mod-badge">${r.module_name}</span></td>
+          <td>${r.object_detected}</td>
+          <td>${(r.confidence*100).toFixed(0)}%</td>
+          <td><span class="threat-badge threat-${r.threat_level}" style="font-size:10px;padding:2px 6px">${r.threat_level}</span></td>
+          <td style="font-size:10px;color:var(--dim)">${formatLocalTime(r.timestamp, 'datetime')}</td>
+        </tr>
+      `).join('');
+
+      // Update stat cards — Bug #2: by_threat is a DICT, not an array
+      fetch('/api/stats').then(r=>r.json()).then(s=>{
+        document.getElementById('statTotal').textContent = s.total || 0;
+        const bt = s.by_threat || {};
+        document.getElementById('statHigh').textContent   = bt['HIGH']   || 0;
+        document.getElementById('statMedium').textContent = bt['MEDIUM']  || 0;
+        document.getElementById('statLow').textContent    = bt['LOW']     || 0;
+      });
+    });
+}
+
+socket.on('connect', () => { document.getElementById('wsHealth').textContent = 'CONNECTED'; document.getElementById('wsBar').style.width = '100%'; document.getElementById('wsBar').style.background = 'var(--green)'; });
+socket.on('disconnect', () => { document.getElementById('wsHealth').textContent = 'DISCONNECTED'; document.getElementById('wsBar').style.width = '20%'; document.getElementById('wsBar').style.background = 'var(--red)'; });
+
+// ── FILE UPLOAD ──
+document.getElementById('dropZone').addEventListener('click', () => document.getElementById('fileInput').click());
+
+function handleDrop(e) {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = 'var(--border2)';
+  const files = e.dataTransfer.files;
+  if (files.length) uploadFile(files[0]);
+}
+
+function handleFileSelect(input) {
+  if (input.files.length) uploadFile(input.files[0]);
+}
+
+function uploadFile(file) {
+  const status = document.getElementById('uploadStatus');
+  const result = document.getElementById('uploadResult');
+  const module = document.getElementById('moduleSelect').value;
+  status.style.display = 'block';
+  status.style.color = 'var(--blue)';
+  status.textContent = '⏳ UPLOADING & PROCESSING: ' + file.name;
+  result.style.display = 'none';
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('module', module);
+
+  fetch('/upload', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        status.style.color = 'var(--green)';
+        status.textContent = '✓ PROCESSED: ' + (data.count || data.total_detections || 0) + ' detections found';
+        if (data.processed_url) {
+          result.style.display = 'block';
+          result.innerHTML = `<img src="${data.processed_url}" style="max-width:100%;border:1px solid var(--border);margin-top:8px">`;
+        }
+        if (data.detections && data.detections.length) {
+          result.style.display = 'block';
+          result.innerHTML += data.detections.map(d =>
+            `<div class="det-row"><span class="det-label">${d.label}</span><span class="threat-badge threat-${d.threat_level}" style="font-size:9px;padding:2px 5px">${d.threat_level}</span></div>`
+          ).join('');
+        }
+        onDetectionUpdate({});
+      } else {
+        status.style.color = 'var(--red)';
+        status.textContent = '✗ ERROR: ' + (data.error || 'Unknown error');
+      }
+    })
+    .catch(e => {
+      status.style.color = 'var(--red)';
+      status.textContent = '✗ UPLOAD FAILED: ' + e.message;
+    });
+}
+
+function clearDetections() {
+  if (!confirm('Clear all detections?')) return;
+  fetch('/api/clear_detections', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({}) })
+    .then(() => { onDetectionUpdate({}); showAlert('Detections cleared', 'low'); });
+}
+{% endblock %}

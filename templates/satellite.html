@@ -1,0 +1,592 @@
+{% extends "base.html" %}
+{% block title %}Satellite Analysis{% endblock %}
+{% block page_title %}🛰 SATELLITE ANALYSIS{% endblock %}
+{% block breadcrumb %}VAJRA-X / SATELLITE / LIVE{% endblock %}
+
+{% block extra_head %}
+<style>
+.sat-grid{display:grid;grid-template-columns:1fr 340px;gap:14px}
+.sat-viewer{
+  background:#010508;border:1px solid var(--border);
+  position:relative;min-height:420px;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.sat-viewer .corner-tl,
+.sat-viewer .corner-tr,
+.sat-viewer .corner-bl,
+.sat-viewer .corner-br {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: var(--blue);
+  border-style: solid;
+  z-index: 8;
+  pointer-events: none;
+}
+.sat-viewer .corner-tl { top: 12px; left: 12px; border-width: 2px 0 0 2px; }
+.sat-viewer .corner-tr { top: 12px; right: 12px; border-width: 2px 2px 0 0; }
+.sat-viewer .corner-bl { bottom: 12px; left: 12px; border-width: 0 0 2px 2px; }
+.sat-viewer .corner-br { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; }
+.sat-img{max-width:100%;max-height:600px;display:none}
+.sat-ph{text-align:center;color:var(--dim);font-family:'Share Tech Mono',monospace;z-index:2}
+.sat-ph .si{font-size:56px;opacity:0.2;margin-bottom:14px}
+.scan-line{
+  position:absolute;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--blue),transparent);
+  display:none;animation:scandown 2s linear infinite;
+  box-shadow: var(--glow-blue);
+}
+@keyframes scandown{from{top:0}to{top:100%}}
+.sat-badge{
+  position:absolute;top:8px;left:8px;font-size:10px;font-family:'Share Tech Mono',monospace;
+  padding:3px 8px;background:rgba(0,0,0,0.8);border:1px solid var(--green);color:var(--green);
+  letter-spacing:0.1em;display:none;
+}
+.sat-badge.show{display:block}
+.sat-coords{
+  position:absolute;bottom:8px;left:8px;font-size:10px;font-family:'Share Tech Mono',monospace;
+  color:var(--blue);
+  opacity:0.8;
+}
+.sat-res{
+  position:absolute;bottom:8px;right:8px;font-size:10px;font-family:'Share Tech Mono',monospace;
+  color:var(--blue);
+  opacity:0.8;
+}
+.ctrl-card{background:var(--card);border:1px solid var(--border);margin-bottom:12px;position:relative;overflow:hidden}
+.ctrl-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--blue),transparent);opacity:0.4}
+.ctrl-hdr{padding:8px 14px;border-bottom:1px solid var(--border);font-family:'Orbitron',monospace;font-size:10px;letter-spacing:0.15em;color:var(--blue)}
+.ctrl-body{padding:12px}
+.field-lbl{font-size:10px;letter-spacing:0.15em;color:var(--blue);font-family:'Share Tech Mono',monospace;margin-bottom:5px}
+.sat-input{
+  width:100%;padding:8px 10px;background:#050d18;border:1px solid var(--border);
+  color:var(--text);font-family:'Share Tech Mono',monospace;font-size:12px;outline:none;
+  margin-bottom:10px;border-radius:2px;transition:border-color 0.2s;
+}
+.sat-input:focus{border-color:var(--blue)}
+.sat-input::placeholder{color:var(--dim)}
+.btn-sat{
+  width:100%;padding:10px;background:rgba(0, 207, 255, 0.08);
+  border:1px solid rgba(0, 207, 255, 0.4);color:var(--blue);font-family:'Orbitron',monospace;
+  font-size:11px;letter-spacing:0.12em;cursor:pointer;transition:all 0.2s;border-radius:2px;
+  font-weight: bold;
+}
+.btn-sat:hover{background:rgba(0, 207, 255, 0.16);box-shadow:var(--glow-blue)}
+.btn-sat:disabled{opacity:0.4;cursor:not-allowed}
+.btn-geo{
+  width:100%;padding:8px;background:rgba(0,255,204,0.08);border:1px solid rgba(0,255,204,0.3);
+  color:var(--green);font-family:'Share Tech Mono',monospace;font-size:11px;cursor:pointer;
+  margin-bottom:10px;border-radius:2px;transition:all 0.15s;
+}
+.btn-geo:hover{background:rgba(0,255,204,0.15)}
+.zoom-row{display:flex;gap:6px;margin-bottom:10px}
+.zoom-btn{
+  flex:1;padding:6px 4px;background:var(--card);border:1px solid var(--border);
+  color:var(--dim);font-size:10px;font-family:'Share Tech Mono',monospace;cursor:pointer;
+  border-radius:2px;transition:all 0.15s;text-align:center;
+}
+.zoom-btn.active{border-color:var(--blue);color:var(--blue);background:rgba(0,207,255,0.08)}
+.zoom-btn:hover{border-color:rgba(0,207,255,0.4);color:var(--text)}
+.status-txt{font-size:11px;font-family:'Share Tech Mono',monospace;padding:6px 0;min-height:20px}
+.weather-card{background:var(--card);border:1px solid var(--border);margin-bottom:12px;position:relative;overflow:hidden}
+.weather-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--orange),transparent);opacity:0.4}
+.w-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px}
+.w-stat{background:#060d18;padding:8px;border:1px solid var(--border);border-radius:2px}
+.w-num{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;line-height:1}
+.w-lbl{font-size:9px;color:var(--dim);font-family:'Share Tech Mono',monospace;letter-spacing:0.12em;margin-top:3px}
+.surv-badge{
+  display:inline-block;padding:4px 10px;font-size:11px;font-family:'Share Tech Mono',monospace;
+  letter-spacing:0.1em;border-radius:2px;margin-top:8px;
+}
+.surv-GOOD    {background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);color:var(--green)}
+.surv-MODERATE{background:rgba(255,149,0,0.1);border:1px solid rgba(255,149,0,0.3);color:var(--orange)}
+.surv-POOR    {background:rgba(255,0,51,0.1);border:1px solid rgba(255,0,51,0.3);color:var(--red)}
+.det-sat-row{
+  display:flex;align-items:center;justify-content:space-between;padding:7px 12px;
+  border-bottom:1px solid rgba(13,32,53,0.5);animation:rowIn 0.3s ease-out;
+}
+.det-sat-row:last-child{border-bottom:none}
+.compare-btn{
+  display:flex;gap:4px;padding:8px;border-top:1px solid var(--border);
+}
+.cmp-btn{
+  flex:1;padding:6px;background:var(--card);border:1px solid var(--border);
+  color:var(--dim);font-size:10px;font-family:'Share Tech Mono',monospace;
+  cursor:pointer;border-radius:2px;transition:all 0.15s;text-align:center;
+}
+.cmp-btn.active{border-color:var(--blue);color:var(--blue);background:rgba(0,207,255,0.08)}
+.stat-row4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.mini-stat{background:var(--card);border:1px solid var(--border);padding:12px;text-align:center;position:relative;overflow:hidden}
+.mini-stat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+.mini-stat.blue::after{background:linear-gradient(90deg,transparent,var(--blue),transparent)}
+.mini-stat.red::after{background:linear-gradient(90deg,transparent,var(--red),transparent)}
+.mini-stat.orange::after{background:linear-gradient(90deg,transparent,var(--orange),transparent)}
+.mini-stat.green::after{background:linear-gradient(90deg,transparent,var(--green),transparent)}
+.mini-num{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:800;line-height:1}
+.mini-lbl{font-size:9px;color:var(--dim);font-family:'Share Tech Mono',monospace;letter-spacing:0.1em;margin-top:4px}
+select.sat-input{cursor:pointer}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- STATS ROW -->
+<div class="stat-row4" id="satStatRow">
+  <div class="mini-stat blue">
+    <div class="mini-num blue" id="ss-total" style="color:var(--blue)">{{ detections|length }}</div>
+    <div class="mini-lbl">TOTAL SCANS</div>
+  </div>
+  <div class="mini-stat red">
+    <div class="mini-num" id="ss-high" style="color:var(--red)">
+      {% set ns=namespace(n=0) %}{% for d in detections %}{% if d.threat_level=='HIGH' %}{% set ns.n=ns.n+1 %}{% endif %}{% endfor %}{{ ns.n }}
+    </div>
+    <div class="mini-lbl">HIGH THREATS</div>
+  </div>
+  <div class="mini-stat orange">
+    <div class="mini-num" id="ss-med" style="color:var(--orange)">
+      {% set ns=namespace(n=0) %}{% for d in detections %}{% if d.threat_level=='MEDIUM' %}{% set ns.n=ns.n+1 %}{% endif %}{% endfor %}{{ ns.n }}
+    </div>
+    <div class="mini-lbl">MEDIUM THREATS</div>
+  </div>
+  <div class="mini-stat green">
+    <div class="mini-num" id="ss-low" style="color:var(--green)">
+      {% set ns=namespace(n=0) %}{% for d in detections %}{% if d.threat_level=='LOW' %}{% set ns.n=ns.n+1 %}{% endif %}{% endfor %}{{ ns.n }}
+    </div>
+    <div class="mini-lbl">LOW THREATS</div>
+  </div>
+</div>
+
+<div class="sat-grid">
+
+  <!-- LEFT: Viewer -->
+  <div>
+    <div style="margin-bottom:14px">
+
+      <div class="sat-viewer" id="satViewer">
+        <div class="corner-tl"></div>
+        <div class="corner-tr"></div>
+        <div class="corner-bl"></div>
+        <div class="corner-br"></div>
+        <div class="scan-line" id="scanLine"></div>
+        <div class="sat-badge" id="satBadge">🛰 LIVE SATELLITE</div>
+        <div class="sat-ph" id="satPh">
+          <div class="si">🛰</div>
+          <div style="font-size:12px;letter-spacing:0.15em">SATELLITE FEED INACTIVE</div>
+          <div style="font-size:10px;margin-top:8px">Enter a location and click SCAN to begin</div>
+        </div>
+        <img id="satImg" class="sat-img" alt="Satellite View">
+        <div class="sat-coords" id="satCoords"></div>
+        <div class="sat-res" id="satRes"></div>
+      </div>
+
+      <!-- Image Toggle Buttons -->
+      <div class="compare-btn" id="cmpBar" style="display:none">
+        <button class="cmp-btn active" id="btnAnnotated" onclick="showAnnotated()">⊙ AI ANNOTATED</button>
+        <button class="cmp-btn"       id="btnOriginal"  onclick="showOriginal()">◎ RAW SATELLITE</button>
+      </div>
+    </div>
+
+    <!-- Detection Results -->
+    <div class="ctrl-card">
+      <div class="ctrl-hdr">⚡ SATELLITE DETECTION RESULTS</div>
+      <div id="satDetList" style="min-height:60px;max-height:260px;overflow-y:auto">
+        <div style="padding:20px;text-align:center;color:var(--dim);font-size:11px;font-family:'Share Tech Mono',monospace">
+          RUN A SCAN TO SEE RESULTS
+        </div>
+      </div>
+    </div>
+
+    <!-- Historical log -->
+    <div class="ctrl-card">
+      <div class="ctrl-hdr">📋 SCAN HISTORY</div>
+      <div style="max-height:200px;overflow-y:auto">
+        <table class="det-table" id="satHistTable">
+          <thead><tr><th>OBJECT</th><th>CONF</th><th>THREAT</th><th>TIME</th></tr></thead>
+          <tbody id="satHistBody">
+            {% for d in detections %}
+            <tr>
+              <td>{{ d.object_detected }}</td>
+              <td>{{ "%.0f"|format(d.confidence*100) }}%</td>
+              <td><span class="threat-badge threat-{{ d.threat_level }}" style="font-size:9px;padding:2px 5px">{{ d.threat_level }}</span></td>
+              <td style="font-size:10px;color:var(--dim)" class="utc-time" data-utc="{{ d.timestamp }}" data-format="time">{{ d.timestamp }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" style="text-align:center;color:var(--dim);padding:16px;font-size:11px;font-family:'Share Tech Mono',monospace">NO HISTORY</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Controls -->
+  <div>
+
+    <!-- Location -->
+    <div class="ctrl-card">
+      <div class="ctrl-hdr">📍 TARGET LOCATION</div>
+      <div class="ctrl-body">
+        <div class="field-lbl">SEARCH LOCATION</div>
+        <input type="text" id="locSearch" class="sat-input" placeholder="e.g. New Delhi, Mumbai, London" onkeydown="if(event.key==='Enter')searchLocation()">
+        <button class="btn-geo" onclick="useMyLocation()">📡 USE MY GPS LOCATION</button>
+
+        <div class="field-lbl">OR ENTER COORDINATES</div>
+        <input type="number" id="latInput" class="sat-input" placeholder="Latitude (e.g. 28.6139)" step="0.0001" min="-90" max="90">
+        <input type="number" id="lonInput" class="sat-input" placeholder="Longitude (e.g. 77.2090)" step="0.0001" min="-180" max="180">
+
+        <div id="locStatus" class="status-txt" style="color:var(--dim)"></div>
+        <div id="locName"   style="font-size:10px;color:var(--blue);margin-bottom:8px;font-family:'Share Tech Mono',monospace;word-break:break-word"></div>
+      </div>
+    </div>
+
+    <!-- Scan Settings -->
+    <div class="ctrl-card">
+      <div class="ctrl-hdr">⚙ SCAN SETTINGS</div>
+      <div class="ctrl-body">
+        <div class="field-lbl">ZOOM LEVEL</div>
+        <div class="zoom-row">
+          <div class="zoom-btn" onclick="setZoom(14,this)">Z14<br><span style="font-size:8px">City</span></div>
+          <div class="zoom-btn" onclick="setZoom(16,this)">Z16<br><span style="font-size:8px">District</span></div>
+          <div class="zoom-btn active" onclick="setZoom(17,this)">Z17<br><span style="font-size:8px">Street</span></div>
+          <div class="zoom-btn" onclick="setZoom(18,this)">Z18<br><span style="font-size:8px">Building</span></div>
+          <div class="zoom-btn" onclick="setZoom(19,this)">Z19<br><span style="font-size:8px">Detail</span></div>
+        </div>
+
+        <div class="field-lbl">GRID SIZE</div>
+        <div class="zoom-row">
+          <div class="zoom-btn" onclick="setGrid(2,this)">2×2<br><span style="font-size:8px">512px</span></div>
+          <div class="zoom-btn active" onclick="setGrid(3,this)">3×3<br><span style="font-size:8px">768px</span></div>
+          <div class="zoom-btn" onclick="setGrid(4,this)">4×4<br><span style="font-size:8px">1024px</span></div>
+          <div class="zoom-btn" onclick="setGrid(5,this)">5×5<br><span style="font-size:8px">1280px</span></div>
+        </div>
+
+        <div class="field-lbl">DETECTION MODULE</div>
+        <select id="satModule" class="sat-input">
+          <option value="smart_city">Smart City</option>
+          <option value="border">Border Security</option>
+          <option value="disaster">Disaster Detection</option>
+          <option value="railway">Railway Safety</option>
+          <option value="mining">Mining Activity</option>
+          <option value="forest">Forest Monitor</option>
+        </select>
+
+        <button class="btn-sat" id="btnScan" onclick="runSatelliteScan()">
+          🛰 INITIATE SATELLITE SCAN
+        </button>
+        <div id="scanStatus" class="status-txt" style="color:var(--dim);margin-top:6px"></div>
+      </div>
+    </div>
+
+    <!-- Weather -->
+    <div class="weather-card">
+      <div class="ctrl-hdr" style="border-bottom:1px solid var(--border)">🌤 ATMOSPHERIC CONDITIONS</div>
+      <div class="ctrl-body" style="padding:10px 12px">
+        {% if not has_weather_key %}
+        <div class="field-lbl">OPENWEATHERMAP API KEY</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px">
+          <input type="text" id="owmKey" class="sat-input" style="margin:0;flex:1"
+                 placeholder="Paste your free API key">
+          <button onclick="fetchWeather()" style="padding:8px 12px;background:rgba(255,149,0,0.1);border:1px solid rgba(255,149,0,0.3);color:var(--orange);font-family:'Share Tech Mono',monospace;font-size:11px;cursor:pointer;white-space:nowrap;border-radius:2px">
+            GET
+          </button>
+        </div>
+        <div style="font-size:9px;color:var(--dim);margin-bottom:10px;font-family:'Share Tech Mono',monospace">
+          Free at openweathermap.org/api
+        </div>
+        {% endif %}
+
+        <div id="weatherPanel">
+          <div style="text-align:center;padding:16px;color:var(--dim);font-size:11px;font-family:'Share Tech Mono',monospace">
+            {% if has_weather_key %}
+            LOADING WEATHER SYSTEM DATA...
+            {% else %}
+            ENTER LOCATION &amp; API KEY TO GET WEATHER
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Satellite Info -->
+    <div class="ctrl-card">
+      <div class="ctrl-hdr">ℹ SATELLITE DATA SOURCE</div>
+      <div class="ctrl-body" style="font-size:11px;color:var(--dim);line-height:1.7;font-family:'Share Tech Mono',monospace">
+        <div>📡 <span style="color:var(--text)">ESRI World Imagery</span></div>
+        <div style="margin-left:16px;font-size:10px">ArcGIS/ESRI satellite tiles</div>
+        <div style="margin-top:6px">🔍 <span style="color:var(--text)">YOLOv8n Detection</span></div>
+        <div style="margin-left:16px;font-size:10px">Real-time AI object detection</div>
+        <div style="margin-top:6px">📍 <span style="color:var(--text)">Nominatim Geocoding</span></div>
+        <div style="margin-left:16px;font-size:10px">OpenStreetMap, free, no key</div>
+        <div style="margin-top:6px">🌤 <span style="color:var(--text)">OpenWeatherMap</span></div>
+        <div style="margin-left:16px;font-size:10px">Free tier — 60 calls/min</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+let currentZoom  = 17;
+let currentGrid  = 3;
+let currentLat   = null;
+let currentLon   = null;
+let annotatedSrc = '';
+let originalSrc  = '';
+let isScanning   = false;
+
+function setZoom(z, el) {
+  currentZoom = z;
+  document.querySelectorAll('.zoom-row:nth-of-type(1) .zoom-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function setGrid(g, el) {
+  currentGrid = g;
+  document.querySelectorAll('.zoom-row:nth-of-type(2) .zoom-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function searchLocation() {
+  const q = document.getElementById('locSearch').value.trim();
+  if (!q) return;
+  document.getElementById('locStatus').textContent = '⏳ Searching…';
+  document.getElementById('locStatus').style.color  = 'var(--blue)';
+  fetch('/api/geocode?q=' + encodeURIComponent(q))
+    .then(r => r.json())
+    .then(d => {
+      if (d.error) {
+        document.getElementById('locStatus').textContent = '✗ ' + d.error;
+        document.getElementById('locStatus').style.color = 'var(--red)';
+        return;
+      }
+      currentLat = d.lat;
+      currentLon = d.lon;
+      document.getElementById('latInput').value = d.lat.toFixed(6);
+      document.getElementById('lonInput').value = d.lon.toFixed(6);
+      document.getElementById('locStatus').textContent = '✓ Location found';
+      document.getElementById('locStatus').style.color = 'var(--green)';
+      document.getElementById('locName').textContent   = d.display_name;
+    })
+    .catch(e => {
+      document.getElementById('locStatus').textContent = '✗ ' + e.message;
+      document.getElementById('locStatus').style.color = 'var(--red)';
+    });
+}
+
+function useMyLocation() {
+  if (!navigator.geolocation) {
+    showAlert('Geolocation not supported by browser', 'high'); return;
+  }
+  document.getElementById('locStatus').textContent = '⏳ Getting GPS location…';
+  document.getElementById('locStatus').style.color = 'var(--blue)';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      currentLat = pos.coords.latitude;
+      currentLon = pos.coords.longitude;
+      document.getElementById('latInput').value = currentLat.toFixed(6);
+      document.getElementById('lonInput').value = currentLon.toFixed(6);
+      document.getElementById('locStatus').textContent = '✓ GPS acquired';
+      document.getElementById('locStatus').style.color = 'var(--green)';
+      document.getElementById('locName').textContent = `${currentLat.toFixed(4)}°N, ${currentLon.toFixed(4)}°E`;
+      // Auto fetch weather
+      fetchWeather();
+    },
+    err => {
+      document.getElementById('locStatus').textContent = '✗ GPS error: ' + err.message;
+      document.getElementById('locStatus').style.color = 'var(--red)';
+    },
+    {enableHighAccuracy: true, timeout: 10000}
+  );
+}
+
+function runSatelliteScan() {
+  // Get coords
+  const lat = parseFloat(document.getElementById('latInput').value) || currentLat;
+  const lon = parseFloat(document.getElementById('lonInput').value) || currentLon;
+  if (!lat || !lon) {
+    showAlert('Enter a location or use GPS first', 'medium'); return;
+  }
+  if (isScanning) return;
+
+  currentLat = lat; currentLon = lon;
+  isScanning = true;
+  const btn  = document.getElementById('btnScan');
+  btn.disabled = true;
+  btn.textContent = '⏳ FETCHING SATELLITE TILES…';
+
+  document.getElementById('scanStatus').textContent = '📡 Fetching real satellite imagery…';
+  document.getElementById('scanStatus').style.color = 'var(--blue)';
+  document.getElementById('scanLine').style.display = 'block';
+  document.getElementById('satPh').style.display    = 'flex';
+  document.getElementById('satImg').style.display   = 'none';
+  document.getElementById('satBadge').classList.remove('show');
+
+  const module = document.getElementById('satModule').value;
+
+  fetch('/api/satellite/analyze', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({lat, lon, zoom: currentZoom, grid: currentGrid, module})
+  })
+  .then(r => r.json())
+  .then(data => {
+    isScanning   = false;
+    btn.disabled = false;
+    btn.textContent = '🛰 INITIATE SATELLITE SCAN';
+    document.getElementById('scanLine').style.display = 'none';
+
+    if (data.success) {
+      annotatedSrc = data.annotated;
+      originalSrc  = data.original;
+
+      document.getElementById('satImg').src          = annotatedSrc;
+      document.getElementById('satImg').style.display = 'block';
+      document.getElementById('satPh').style.display  = 'none';
+      document.getElementById('satBadge').classList.add('show');
+      document.getElementById('cmpBar').style.display = 'flex';
+      document.getElementById('satCoords').textContent = `${lat.toFixed(4)}°, ${lon.toFixed(4)}° | Z${data.zoom}`;
+      document.getElementById('satRes').textContent    = data.resolution;
+
+      document.getElementById('scanStatus').textContent = `✓ Scan complete — ${data.detections.length} objects detected`;
+      document.getElementById('scanStatus').style.color = 'var(--green)';
+
+      showAnnotated();
+      updateDetList(data.detections);
+      refreshHistory();
+      refreshStats();
+    } else {
+      document.getElementById('scanStatus').textContent = '✗ ' + (data.error||'Scan failed');
+      document.getElementById('scanStatus').style.color = 'var(--red)';
+    }
+  })
+  .catch(e => {
+    isScanning   = false;
+    btn.disabled = false;
+    btn.textContent = '🛰 INITIATE SATELLITE SCAN';
+    document.getElementById('scanLine').style.display = 'none';
+    document.getElementById('scanStatus').textContent = '✗ ' + e.message;
+    document.getElementById('scanStatus').style.color = 'var(--red)';
+  });
+}
+
+function showAnnotated() {
+  document.getElementById('satImg').src = annotatedSrc;
+  document.getElementById('btnAnnotated').classList.add('active');
+  document.getElementById('btnOriginal').classList.remove('active');
+}
+
+function showOriginal() {
+  document.getElementById('satImg').src = originalSrc;
+  document.getElementById('btnOriginal').classList.add('active');
+  document.getElementById('btnAnnotated').classList.remove('active');
+}
+
+function updateDetList(dets) {
+  const c = document.getElementById('satDetList');
+  if (!dets || !dets.length) {
+    c.innerHTML = '<div style="padding:16px;text-align:center;color:var(--dim);font-size:11px;font-family:\'Share Tech Mono\',monospace">NO OBJECTS DETECTED IN SATELLITE IMAGE</div>';
+    return;
+  }
+  c.innerHTML = dets.map(d => `
+    <div class="det-sat-row">
+      <div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:12px">${d.label}</div>
+        <div style="font-size:10px;color:var(--dim)">${d.raw_label||''}</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;color:var(--dim)">${(d.confidence*100).toFixed(0)}%</span>
+        <span class="threat-badge threat-${d.threat_level}" style="font-size:9px;padding:2px 6px">${d.threat_level}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function fetchWeather() {
+  const lat = parseFloat(document.getElementById('latInput').value) || currentLat;
+  const lon = parseFloat(document.getElementById('lonInput').value) || currentLon;
+  const keyEl = document.getElementById('owmKey');
+  const key = keyEl ? keyEl.value.trim() : '';
+  const panel = document.getElementById('weatherPanel');
+
+  if (!lat || !lon) {
+    panel.innerHTML = '<div style="padding:10px;color:var(--orange);font-size:11px;font-family:\'Share Tech Mono\',monospace">Set a location first</div>';
+    return;
+  }
+  panel.innerHTML = '<div style="padding:10px;color:var(--blue);font-size:11px;font-family:\'Share Tech Mono\',monospace">⏳ Fetching weather…</div>';
+
+  fetch(`/api/weather?lat=${lat}&lon=${lon}&key=${encodeURIComponent(key)}`)
+    .then(r => r.json())
+    .then(w => {
+      if (w.no_key) {
+        panel.innerHTML = `<div style="font-size:10px;color:var(--dim);padding:6px;font-family:'Share Tech Mono',monospace">
+          Enter API key above. Get free key at <a href="https://openweathermap.org/api" target="_blank" style="color:var(--blue)">openweathermap.org</a>
+        </div>`;
+        return;
+      }
+      if (w.error) {
+        panel.innerHTML = `<div style="padding:8px;color:var(--red);font-size:11px;font-family:'Share Tech Mono',monospace">✗ ${w.error}</div>`;
+        return;
+      }
+      const windDir = ['N','NE','E','SE','S','SW','W','NW'][Math.round(w.wind_deg/45)%8];
+      panel.innerHTML = `
+        <div style="padding:8px 0 4px;font-family:'Orbitron',monospace;font-size:11px;color:var(--bright)">${w.city}, ${w.country}</div>
+        <div style="font-size:11px;color:var(--dim);margin-bottom:8px">${w.description}</div>
+        <div class="w-grid">
+          <div class="w-stat"><div class="w-num" style="color:var(--blue)">${w.temp}°C</div><div class="w-lbl">TEMPERATURE</div></div>
+          <div class="w-stat"><div class="w-num" style="color:var(--blue)">${w.humidity}%</div><div class="w-lbl">HUMIDITY</div></div>
+          <div class="w-stat"><div class="w-num" style="color:var(--green)">${w.visibility_km}km</div><div class="w-lbl">VISIBILITY</div></div>
+          <div class="w-stat"><div class="w-num" style="color:var(--orange)">${w.wind_speed}m/s</div><div class="w-lbl">WIND ${windDir}</div></div>
+          <div class="w-stat"><div class="w-num" style="color:var(--dim)">${w.clouds}%</div><div class="w-lbl">CLOUD COVER</div></div>
+          <div class="w-stat"><div class="w-num" style="color:var(--dim)">${w.pressure}hPa</div><div class="w-lbl">PRESSURE</div></div>
+        </div>
+        <div style="padding:6px 0 2px">
+          <div style="font-size:9px;color:var(--dim);font-family:'Share Tech Mono',monospace;margin-bottom:4px">SURVEILLANCE CONDITIONS</div>
+          <span class="surv-badge surv-${w.surv_level}">● ${w.surv_level} VISIBILITY</span>
+        </div>
+      `;
+    })
+    .catch(e => {
+      panel.innerHTML = `<div style="padding:8px;color:var(--red);font-size:11px;font-family:'Share Tech Mono',monospace">✗ ${e.message}</div>`;
+    });
+}
+
+function refreshHistory() {
+  fetch('/api/detections?module=satellite&limit=20')
+    .then(r=>r.json())
+    .then(res=>{
+      const rows = res.data || [];
+      const body = document.getElementById('satHistBody');
+      if(!rows.length) return;
+      body.innerHTML = rows.map(r=>`
+        <tr>
+          <td>${r.object_detected}</td>
+          <td>${(r.confidence*100).toFixed(0)}%</td>
+          <td><span class="threat-badge threat-${r.threat_level}" style="font-size:9px;padding:2px 5px">${r.threat_level}</span></td>
+          <td style="font-size:10px;color:var(--dim)">${formatLocalTime(r.timestamp, 'time')}</td>
+        </tr>
+      `).join('');
+    });
+}
+
+function refreshStats() {
+  fetch('/api/stats?module=satellite')
+    .then(r=>r.json())
+    .then(s=>{
+      document.getElementById('ss-total').textContent = s.total || 0;
+      const bt = s.by_threat || {};
+      document.getElementById('ss-high').textContent   = bt['HIGH']   || 0;
+      document.getElementById('ss-med').textContent    = bt['MEDIUM']  || 0;
+      document.getElementById('ss-low').textContent    = bt['LOW']     || 0;
+    });
+}
+
+function onDetectionUpdate(d) {
+  if(d.module==='satellite') { refreshHistory(); refreshStats(); }
+}
+
+// Allow pressing Enter in location search
+document.getElementById('locSearch').addEventListener('keydown', e=>{
+  if(e.key==='Enter') searchLocation();
+});
+{% endblock %}

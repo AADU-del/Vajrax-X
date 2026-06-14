@@ -1,0 +1,520 @@
+{% extends "base.html" %}
+{% block title %}System Settings{% endblock %}
+{% block page_title %}SYSTEM SETTINGS{% endblock %}
+{% block breadcrumb %}VAJRA-X / CONFIGURATION{% endblock %}
+
+{% block extra_head %}
+<style>
+.settings-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+}
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-nav-item {
+  padding: 14px 18px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--dim);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+  border-left: 3px solid transparent;
+}
+
+.settings-nav-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  background: rgba(0, 207, 255, 0.08);
+  transition: width 0.3s ease;
+}
+
+.settings-nav-item:hover::before {
+  width: 100%;
+}
+
+.settings-nav-item:hover {
+  border-color: rgba(0, 207, 255, 0.2);
+  border-left-color: rgba(0, 207, 255, 0.4);
+  color: var(--text);
+}
+
+.settings-nav-item.active {
+  background: rgba(0, 207, 255, 0.08);
+  border-color: rgba(0, 207, 255, 0.2);
+  border-left-color: var(--blue);
+  color: var(--blue);
+  font-weight: bold;
+  box-shadow: 0 0 12px rgba(0, 207, 255, 0.08);
+}
+
+.settings-section {
+  display: none;
+  animation: fadeIn 0.3s ease;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.settings-section::-webkit-scrollbar { width: 4px; }
+.settings-section::-webkit-scrollbar-thumb { background: rgba(0, 207, 255, 0.2); border-radius: 4px; }
+
+.settings-section.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-label {
+  display: block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--blue);
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+
+.form-desc {
+  font-size: 11px;
+  color: var(--dim);
+  margin-bottom: 12px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(5, 13, 24, 0.8);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  border-radius: 4px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.15);
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: .3s;
+  border-radius: 24px;
+  border: 1px solid var(--border);
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--dim);
+  transition: .3s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: rgba(6, 182, 212, 0.2);
+  border-color: var(--blue);
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+  background-color: var(--blue);
+  box-shadow: 0 0 10px var(--blue);
+}
+
+.range-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.range-wrap input[type=range] {
+  flex: 1;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+}
+
+.range-wrap input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--blue);
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+}
+
+.range-val {
+  font-family: 'Orbitron', monospace;
+  font-size: 14px;
+  color: var(--blue);
+  min-width: 40px;
+  text-align: right;
+}
+
+.action-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  margin-top: 30px;
+}
+
+/* Settings specific scrollbar */
+.settings-section {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.settings-section.active {
+  display: block;
+}
+
+.settings-section::-webkit-scrollbar { width: 4px; }
+.settings-section::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.2); border-radius: 4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="settings-grid">
+  <!-- Navigation Sidebar -->
+  <div class="settings-nav">
+    <div class="settings-nav-item active" onclick="switchTab('detection', this)">
+      <span style="font-size: 16px;">🎯</span> Detection Models
+    </div>
+    <div class="settings-nav-item" onclick="switchTab('notifications', this)">
+      <span style="font-size: 16px;">🔔</span> Alerts & Audio
+    </div>
+    <div class="settings-nav-item" onclick="switchTab('system', this)">
+      <span style="font-size: 16px;">⚙️</span> System Preferences
+    </div>
+    <div class="settings-nav-item" onclick="switchTab('account', this)">
+      <span style="font-size: 16px;">👤</span> Account & Access
+    </div>
+  </div>
+
+  <!-- Content Area -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header">
+      <span class="card-title" id="sectionTitle">DETECTION MODELS</span>
+    </div>
+    <div class="card-body">
+      
+      <!-- Tab 1: Detection Models -->
+      <div id="tab-detection" class="settings-section active">
+        <div class="form-group">
+          <label class="form-label">GLOBAL CONFIDENCE THRESHOLD</label>
+          <div class="form-desc">Minimum AI confidence score required to trigger a detection event. Lower values may increase false positives.</div>
+          <div class="range-wrap">
+            <input type="range" id="confThreshold" min="10" max="95" value="65" oninput="updateRangeVal('confVal', this.value)">
+            <span class="range-val" id="confVal">65%</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">HIGH THREAT OVERRIDE</label>
+          <div class="form-desc">Automatically flag unknown objects behaving erratically as high threat.</div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="threatOverride" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">YOLO MODEL VERSION</label>
+          <div class="form-desc">Select the AI model architecture to use for processing.</div>
+          <select class="form-input" style="cursor: pointer;">
+            <option value="yolov8n">YOLOv8 Nano (Fastest, High FPS)</option>
+            <option value="yolov8s" selected>YOLOv8 Small (Balanced)</option>
+            <option value="yolov8m">YOLOv8 Medium (High Accuracy)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tab 2: Notifications -->
+      <div id="tab-notifications" class="settings-section">
+        <div class="form-group">
+          <label class="form-label">AUDIO ALERTS</label>
+          <div class="form-desc">Play synthesized audio chimes when threats are detected.</div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="audioToggle" onchange="toggleAudio(this)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        
+        <div class="form-group">
+          <button class="btn btn-primary" onclick="playAlertSound('HIGH')">TEST HIGH THREAT SOUND</button>
+          <button class="btn btn-primary" onclick="playAlertSound('MEDIUM')" style="margin-left: 10px;">TEST MED THREAT SOUND</button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">DESKTOP NOTIFICATIONS</label>
+          <div class="form-desc">Show native browser notifications for critical events.</div>
+          <label class="toggle-switch">
+            <input type="checkbox" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Tab 3: System Preferences -->
+      <div id="tab-system" class="settings-section">
+        <div class="form-group">
+          <label class="form-label">DATA RETENTION PERIOD</label>
+          <div class="form-desc">Number of days to keep detection logs and snapshots before auto-purging.</div>
+          <select class="form-input">
+            <option value="7">7 Days</option>
+            <option value="30" selected>30 Days</option>
+            <option value="90">90 Days</option>
+            <option value="0">Indefinitely</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">MAXIMUM FRAME RATE (FPS)</label>
+          <div class="form-desc">Cap processing frame rate to reduce server load.</div>
+          <div class="range-wrap">
+            <input type="range" id="fpsLimit" min="5" max="60" value="30" oninput="updateRangeVal('fpsVal', this.value)">
+            <span class="range-val" id="fpsVal">30</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Account -->
+      <div id="tab-account" class="settings-section">
+        <div class="form-group">
+          <label class="form-label">OPERATOR NAME</label>
+          <input type="text" class="form-input" value="{{ user.upper() }}" disabled style="opacity: 0.7; cursor: not-allowed;">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ACCESS LEVEL</label>
+          <input type="text" class="form-input" value="ADMINISTRATOR" disabled style="opacity: 0.7; cursor: not-allowed;">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">CHANGE PASSWORD</label>
+          <div class="form-desc">Enter your current password to confirm before changing.</div>
+          <input type="password" id="currentPassword" class="form-input" placeholder="Current password" style="margin-bottom: 10px;">
+          <input type="password" id="newPassword" class="form-input" placeholder="New password (min 8 chars)" style="margin-bottom: 10px;">
+          <input type="password" id="confirmPassword" class="form-input" placeholder="Confirm new password">
+          <button class="btn btn-primary" style="margin-top:14px" onclick="changePassword()">🔒 UPDATE PASSWORD</button>
+          <div id="pwStatus" style="margin-top:8px;font-size:11px;font-family:'Share Tech Mono',monospace"></div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn" style="background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.15); color: var(--dim);" onclick="location.reload()" onmouseover="this.style.color='var(--text)';this.style.borderColor='rgba(255,255,255,0.3)';this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.color='var(--dim)';this.style.borderColor='rgba(255,255,255,0.15)';this.style.background='rgba(255,255,255,0.03)'">✕ CANCEL</button>
+        <button class="btn btn-success" onclick="saveSettings(event)" style="padding:10px 24px">✓ SAVE CONFIGURATION</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_scripts %}
+// Tab Switching logic
+const titles = {
+  'detection':     'DETECTION MODELS',
+  'notifications': 'ALERTS & AUDIO',
+  'system':        'SYSTEM PREFERENCES',
+  'account':       'ACCOUNT & ACCESS'
+};
+
+function switchTab(tabId, el) {
+  document.querySelectorAll('.settings-nav-item').forEach(item => item.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.settings-section').forEach(section => section.classList.remove('active'));
+  document.getElementById('tab-' + tabId).classList.add('active');
+  document.getElementById('sectionTitle').textContent = titles[tabId];
+}
+
+function updateRangeVal(id, val) {
+  document.getElementById(id).textContent = id === 'confVal' ? val + '%' : val;
+}
+
+// Bug #7: Load current settings from server on page load
+async function loadCurrentSettings() {
+  try {
+    const res  = await fetch('/api/settings');
+    const data = await res.json();
+    if (!data.success) return;
+    const s = data.settings;
+
+    // Apply to UI elements
+    if (s.conf_threshold !== undefined) {
+      const pct = Math.round(s.conf_threshold * 100);
+      document.getElementById('confThreshold').value = pct;
+      updateRangeVal('confVal', pct);
+    }
+    if (s.fps_limit !== undefined) {
+      document.getElementById('fpsLimit').value = s.fps_limit;
+      updateRangeVal('fpsVal', s.fps_limit);
+    }
+    if (s.threat_override !== undefined) {
+      document.getElementById('threatOverride').checked = s.threat_override;
+    }
+    if (s.audio_alerts !== undefined) {
+      document.getElementById('audioToggle').checked = s.audio_alerts;
+    }
+    // Sync localStorage too
+    localStorage.setItem('alert_sound_enabled', s.audio_alerts);
+    localStorage.setItem('conf_threshold', Math.round((s.conf_threshold || 0.45) * 100));
+  } catch (e) {
+    console.warn('Could not load settings from server:', e);
+  }
+}
+
+function toggleAudio(checkbox) {
+  localStorage.setItem('alert_sound_enabled', checkbox.checked);
+  if(checkbox.checked) {
+    showAlert('Audio alerts enabled', 'low');
+  } else {
+    showAlert('Audio alerts disabled', 'medium');
+  }
+}
+
+// Bug #7: saveSettings() now calls the real /api/settings endpoint
+async function saveSettings(event) {
+  const btn = event ? event.target : document.querySelector('.btn-success');
+  btn.textContent = 'SAVING...';
+  btn.disabled = true;
+
+  const confRaw = parseInt(document.getElementById('confThreshold').value, 10);
+  const payload = {
+    conf_threshold:      confRaw / 100,
+    fps_limit:           parseInt(document.getElementById('fpsLimit').value, 10),
+    threat_override:     document.getElementById('threatOverride').checked,
+    audio_alerts:        document.getElementById('audioToggle').checked,
+    model_version:       document.querySelector('#tab-detection select').value,
+    data_retention_days: parseInt(document.querySelector('#tab-system select').value, 10),
+  };
+
+  // Also save audio preference to localStorage for client-side immediate effect
+  localStorage.setItem('alert_sound_enabled', payload.audio_alerts);
+  localStorage.setItem('conf_threshold', confRaw);
+
+  try {
+    const res  = await fetch('/api/settings', {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      showAlert('Configuration saved to server successfully.', 'low');
+    } else {
+      showAlert('Save failed: ' + (data.error || 'Unknown error'), 'high');
+    }
+  } catch (err) {
+    showAlert('Network error saving settings: ' + err.message, 'high');
+  } finally {
+    btn.textContent = 'SAVE CONFIGURATION';
+    btn.disabled = false;
+  }
+}
+
+// Change password via auth API
+async function changePassword() {
+  const current  = document.getElementById('currentPassword').value;
+  const newPw    = document.getElementById('newPassword').value;
+  const confirm  = document.getElementById('confirmPassword').value;
+  const status   = document.getElementById('pwStatus');
+
+  if (!current || !newPw || !confirm) {
+    status.style.color = 'var(--red)';
+    status.textContent = '✗ All password fields are required';
+    return;
+  }
+  if (newPw !== confirm) {
+    status.style.color = 'var(--red)';
+    status.textContent = '✗ New passwords do not match';
+    return;
+  }
+  if (newPw.length < 8) {
+    status.style.color = 'var(--red)';
+    status.textContent = '✗ Password must be at least 8 characters';
+    return;
+  }
+
+  status.style.color = 'var(--blue)';
+  status.textContent = '⏳ Updating password...';
+
+  try {
+    const res  = await fetch('/api/auth/change_password', {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify({current_password: current, new_password: newPw})
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      status.style.color = 'var(--green)';
+      status.textContent = '✓ Password updated successfully';
+      document.getElementById('currentPassword').value = '';
+      document.getElementById('newPassword').value = '';
+      document.getElementById('confirmPassword').value = '';
+    } else {
+      status.style.color = 'var(--red)';
+      status.textContent = '✗ ' + (data.message || 'Failed to update password');
+    }
+  } catch (err) {
+    status.style.color = 'var(--red)';
+    status.textContent = '✗ Network error: ' + err.message;
+  }
+}
+
+window.addEventListener('DOMContentLoaded', loadCurrentSettings);
+{% endblock %}

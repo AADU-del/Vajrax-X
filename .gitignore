@@ -1,0 +1,45 @@
+# Byte-compiled / optimized / DLL files
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+
+# Secrets & Environment variables
+.env
+.env.*
+*.env
+**/.env
+**/.env.*
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Database and Instance files
+*.db
+*.db-shm
+*.db-wal
+vajrax.db
+database/vajrax.db
+instance/
+
+# Logs and media uploads
+*.log
+logs/
+vajrax.log
+static/uploads/*
+!static/uploads/.gitkeep
+static/processed/*
+!static/processed/.gitkeep
+
+# Large ML weights
+*.pt
+*.pth
+
+# IDE configurations and cache
+.pytest_cache/
+.coverage
+htmlcov/
+.vscode/
+.idea/
