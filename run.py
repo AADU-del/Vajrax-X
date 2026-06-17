@@ -39,11 +39,13 @@ if __name__ == '__main__':
         traceback.print_exc()
         sys.exit(1)
 
+    from config import get_config
+    dev_cfg = get_config()
     print("\n" + "="*52)
     print("  [+] VAJRA-X Multi-Domain Situational Awareness Platform")
     print("="*52)
     print("  URL    : http://127.0.0.1:5000")
-    print("  Login  : admin / ChangeMe@2024!")
+    print(f"  Login  : {dev_cfg.ADMIN_USERNAME} / [Password from .env]")
     print("  Mode   : Development (debug=True)")
     print("="*52 + "\n")
     socketio.run(

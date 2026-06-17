@@ -22,7 +22,7 @@ if %errorlevel% neq 0 (
 echo Starting Flask development server...
 echo.
 echo Open your browser: http://127.0.0.1:5000
-echo Seed Login: admin / ChangeMe@2024!
+echo Seed Login: [See server console below]
 echo.
 echo Press Ctrl+C to stop the server
 echo.

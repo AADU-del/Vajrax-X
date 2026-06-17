@@ -1707,14 +1707,14 @@ def create_app() -> Flask:
             from werkzeug.security import generate_password_hash
             if not db.session.query(User).first():
                 default_admin = User(
-                    username='admin',
-                    password_hash=generate_password_hash('ChangeMe@2024!'),
+                    username=cfg.ADMIN_USERNAME,
+                    password_hash=generate_password_hash(cfg.ADMIN_PASSWORD),
                     role='admin',
-                    email='admin@vajrax.local'
+                    email=f"{cfg.ADMIN_USERNAME}@vajrax.local"
                 )
                 db.session.add(default_admin)
                 db.session.commit()
-                logger.info("Default admin user seeded successfully")
+                logger.info(f"Default admin user '{cfg.ADMIN_USERNAME}' seeded successfully")
 
         logger.info(f"VAJRA-X Core v2.0 initialized in {cfg.FLASK_ENV} mode")
         return app

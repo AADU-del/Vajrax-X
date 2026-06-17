@@ -15,7 +15,7 @@ logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
 # ── CHANGE THIS TO YOUR USERNAME ──
 USERNAME = 'YOUR_USERNAME'
-PROJECT_DIR = f'/home/{USERNAME}/sentinel_x'
+PROJECT_DIR = f'/home/{USERNAME}/vajrax'
 
 if PROJECT_DIR not in sys.path:
     sys.path.insert(0, PROJECT_DIR)
@@ -23,7 +23,7 @@ if PROJECT_DIR not in sys.path:
 os.chdir(PROJECT_DIR)
 
 # Activate your virtualenv
-VENV_PATH = f'/home/{USERNAME}/.virtualenvs/sentinel_venv/bin/activate_this.py'
+VENV_PATH = f'/home/{USERNAME}/.virtualenvs/vajra_venv/bin/activate_this.py'
 if os.path.exists(VENV_PATH):
     with open(VENV_PATH) as f:
         exec(f.read(), {'__file__': VENV_PATH})

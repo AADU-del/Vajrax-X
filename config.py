@@ -74,6 +74,10 @@ class Config:
     GOOGLE_MAPS_API_KEY: Optional[str] = os.getenv('GOOGLE_MAPS_API_KEY')
     GROQ_API_KEY: Optional[str] = os.getenv('GROQ_API_KEY')
 
+    # Default Admin Credentials
+    ADMIN_USERNAME: str = os.getenv('ADMIN_USERNAME', 'mehak')
+    ADMIN_PASSWORD: str = os.getenv('ADMIN_PASSWORD', 'ChangeMe@2024!')
+
     # Bug #22: Include both common dev ports in default CORS origins
     CORS_ALLOWED_ORIGINS: str = os.getenv(
         'CORS_ALLOWED_ORIGINS',

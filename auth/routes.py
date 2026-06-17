@@ -48,7 +48,7 @@ def register():
     
     username = data.get("username", "").strip()
     password = data.get("password", "")
-    email = data.get("email", "").strip() or f"{username}@sentinel-x.local"
+    email = data.get("email", "").strip() or f"{username}@vajrax.local"
     
     if not username or not password:
         return jsonify({

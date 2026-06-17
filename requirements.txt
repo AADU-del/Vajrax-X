@@ -1,5 +1,5 @@
 # ============================================================
-# SENTINEL-X Requirements
+# VAJRA-X Requirements
 # Updated: 2026-06 — fixed version conflicts (Bug #29)
 # ============================================================
 
