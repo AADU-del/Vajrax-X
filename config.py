@@ -3,6 +3,7 @@ VAJRA-X Configuration Management
 """
 
 import os
+import re
 import secrets
 from pathlib import Path
 from dotenv import load_dotenv
@@ -15,6 +16,28 @@ if ENV_FILE.exists():
 
 
 class Config:
+    @staticmethod
+    def _looks_like_placeholder(value: Optional[str]) -> bool:
+        if not value:
+            return True
+        normalized = value.strip().lower()
+        placeholder_tokens = (
+            'change-me', 'changeme', 'replace-me', 'your-secret', 'your_secret',
+            'placeholder', 'example', 'dev-key-change-in-production', 'test-secret-key'
+        )
+        return any(token in normalized for token in placeholder_tokens)
+
+    @staticmethod
+    def _has_strong_password(value: Optional[str]) -> bool:
+        if not value:
+            return False
+        return (
+            len(value) >= 12
+            and re.search(r'[A-Z]', value) is not None
+            and re.search(r'[a-z]', value) is not None
+            and re.search(r'\d', value) is not None
+            and re.search(r'[^A-Za-z0-9]', value) is not None
+        )
 
     # Flask
     FLASK_ENV: str = os.getenv('FLASK_ENV', 'development')
@@ -114,14 +137,26 @@ class ProductionConfig(Config):
     # Bug #13: Production MUST have explicit SECRET_KEY — raise early if missing
     @classmethod
     def validate(cls):
-        if not os.getenv('SECRET_KEY'):
+        secret_key = os.getenv('SECRET_KEY')
+        jwt_secret_key = os.getenv('JWT_SECRET_KEY')
+        admin_username = os.getenv('ADMIN_USERNAME')
+        admin_password = os.getenv('ADMIN_PASSWORD')
+
+        if not secret_key or cls._looks_like_placeholder(secret_key):
             raise RuntimeError(
-                "FATAL: SECRET_KEY environment variable must be set in production! "
-                "Run: python -c \"import secrets; print(secrets.token_hex(32))\""
+                "FATAL: SECRET_KEY environment variable must be set to a non-placeholder value in production!"
             )
-        if not os.getenv('JWT_SECRET_KEY'):
+        if not jwt_secret_key or cls._looks_like_placeholder(jwt_secret_key):
             raise RuntimeError(
-                "FATAL: JWT_SECRET_KEY environment variable must be set in production!"
+                "FATAL: JWT_SECRET_KEY environment variable must be set to a non-placeholder value in production!"
+            )
+        if not admin_username or cls._looks_like_placeholder(admin_username):
+            raise RuntimeError(
+                "FATAL: ADMIN_USERNAME must be set to a non-placeholder value in production!"
+            )
+        if not cls._has_strong_password(admin_password):
+            raise RuntimeError(
+                "FATAL: ADMIN_PASSWORD must be at least 12 characters and include upper/lower/number/special characters!"
             )
 
 

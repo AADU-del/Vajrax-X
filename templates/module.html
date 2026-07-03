@@ -135,15 +135,7 @@
     <!-- Module Info -->
     <div class="info-box">
       <div class="ib-title">🔍 DETECTION TARGETS</div>
-      {% set targets_map = {
-        'border': ['person','car','truck','motorcycle','backpack','suitcase'],
-        'disaster': ['person','car','bus','truck','fire hydrant','boat'],
-        'railway': ['person','bicycle','motorcycle','car','truck','dog','cat'],
-        'smart_city': ['person','car','bicycle','motorcycle','bus','truck','traffic light','stop sign'],
-        'mining': ['person','truck','car','backpack'],
-        'forest': ['person','car','truck','bird','cat','dog','horse','cow','bear']
-      } %}
-      {% for t in targets_map.get(module_name, []) %}
+      {% for t in module_targets %}
       <span class="info-tag">{{ t }}</span>
       {% endfor %}
     </div>

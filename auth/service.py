@@ -1,9 +1,25 @@
+import re
+import logging
+
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import db
 from database.models import User
-import logging
 
 logger = logging.getLogger(__name__)
+
+PASSWORD_MIN_LENGTH = 12
+PASSWORD_PATTERN = re.compile(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$')
+
+
+def validate_password(password):
+    """Validate password strength for production-grade auth."""
+    if not password:
+        return False, "Password is required"
+    if len(password) < PASSWORD_MIN_LENGTH:
+        return False, f"Password must be at least {PASSWORD_MIN_LENGTH} characters"
+    if not PASSWORD_PATTERN.match(password):
+        return False, "Password must contain upper, lower, number, and special character"
+    return True, None
 
 
 def create_user(username, email, password, role="operator"):
@@ -26,8 +42,9 @@ def create_user(username, email, password, role="operator"):
     if not email or '@' not in email:
         return None, "Valid email required"
     
-    if not password or len(password) < 6:
-        return None, "Password must be at least 6 characters"
+    is_valid, error = validate_password(password)
+    if not is_valid:
+        return None, error
     
     # Check for existing user
     existing_user = User.query.filter(
@@ -82,17 +99,6 @@ def authenticate_user(username, password):
         
         if check_password_hash(user.password_hash, password):
             logger.info(f"User authenticated successfully: {username}")
-            return user
-        
-        # Legacy support: if stored password is plaintext, allow login once and upgrade hash
-        if user.password_hash == password:
-            try:
-                user.password_hash = generate_password_hash(password)
-                db.session.commit()
-                logger.info(f"Upgraded plaintext password to hash for user: {username}")
-            except Exception as upgrade_error:
-                db.session.rollback()
-                logger.warning(f"Failed to upgrade legacy password for {username}: {upgrade_error}")
             return user
         
         logger.warning(f"Invalid password attempt for user: {username}")

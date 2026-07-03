@@ -1,10 +1,11 @@
 from datetime import datetime
 from flask import request, jsonify, redirect, url_for
 from flask_login import login_user, logout_user, current_user, login_required
+from werkzeug.security import check_password_hash, generate_password_hash
 import logging
 
 from auth import auth_bp
-from auth.service import create_user, authenticate_user
+from auth.service import create_user, authenticate_user, validate_password
 from database.db import db
 from database.models import Log
 
@@ -61,11 +62,21 @@ def register():
     
     if error:
         audit_log(f"Failed registration: {username} - {error}")
+        lowered_error = error.lower()
+        if "already registered" in lowered_error:
+            status_code = 409
+            error_code = "USER_EXISTS"
+        elif "valid" in lowered_error or "required" in lowered_error or "must" in lowered_error or "password" in lowered_error:
+            status_code = 400
+            error_code = "VALIDATION_ERROR"
+        else:
+            status_code = 400
+            error_code = "REGISTRATION_FAILED"
         return jsonify({
             "status": "error",
-            "code": "REGISTRATION_FAILED",
+            "code": error_code,
             "message": error
-        }), 409
+        }), status_code
     
     login_user(user, remember=False)
     audit_log(f"User registered: {username}")
@@ -209,13 +220,13 @@ def change_password():
             "message": "Current and new passwords are required"
         }), 400
         
-    if len(new_password) < 8:
+    is_valid, password_error = validate_password(new_password)
+    if not is_valid:
         return jsonify({
             "status": "error",
-            "message": "New password must be at least 8 characters"
+            "message": password_error
         }), 400
 
-    from werkzeug.security import check_password_hash, generate_password_hash
     if not check_password_hash(current_user.password_hash, current_password):
         audit_log(f"Failed password change attempt: {current_user.username}")
         return jsonify({

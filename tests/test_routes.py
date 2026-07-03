@@ -160,6 +160,16 @@ class TestAuth:
         })
         assert resp.status_code in (400, 409)
 
+    def test_register_rejects_weak_password(self, client):
+        """Registration should reject weak passwords."""
+        resp = client.post('/api/auth/register', json={
+            'username': 'weakuser',
+            'password': 'weakpass'
+        })
+        assert resp.status_code == 400
+        data = resp.get_json()
+        assert data.get('status') == 'error'
+
     def test_change_password_success(self, auth_client):
         """POST /api/auth/change_password with correct current password should succeed."""
         # Seeded testadmin password is TestPass1234!
@@ -337,6 +347,18 @@ class TestConfig:
         cfg = get_config()
         assert cfg.SECRET_KEY != 'dev-key-change-in-production'
         assert len(cfg.SECRET_KEY) >= 32
+
+    def test_production_config_rejects_placeholder_secrets(self, monkeypatch):
+        """Production config should fail fast on placeholder secrets."""
+        import os
+        monkeypatch.setenv('FLASK_ENV', 'production')
+        monkeypatch.setenv('SECRET_KEY', 'change-me')
+        monkeypatch.setenv('JWT_SECRET_KEY', 'change-me')
+        monkeypatch.setenv('ADMIN_USERNAME', 'admin')
+        monkeypatch.setenv('ADMIN_PASSWORD', 'weakpass')
+        from config import get_config
+        with pytest.raises(RuntimeError):
+            get_config()
 
     def test_db_indexes_defined(self):
         """Bug #14: Critical columns should have DB indexes."""

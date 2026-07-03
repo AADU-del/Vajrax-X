@@ -28,7 +28,6 @@ vajrax/
 │   ├── module.html
 │   └── error.html
 └── static/
-    ├── css/vajra.css
     ├── uploads/            # Uploaded files
     └── processed/          # Processed outputs
 ```
@@ -53,8 +52,8 @@ VAJRA-X Core
 
 ### Step 1: Create Virtual Environment
 ```powershell
-python -m venv venv
-venv\Scripts\activate
+python -m venv .venv
+.venv\Scripts\activate
 ```
 
 ### Step 2: Install Dependencies
@@ -196,8 +195,8 @@ pip install ultralytics
 
 ## 🔒 SECURITY NOTE
 This is a demo/educational system. For production:
-- Change the `SECRET_KEY` in app.py
-- Use hashed passwords (bcrypt)
+- Set the `SECRET_KEY`, `JWT_SECRET_KEY`, and `ADMIN_PASSWORD` in `.env`
+- Use strong admin credentials and rotate them before deployment
 - Enable HTTPS
 - Set proper file permissions
 b7bdef5 (Initial commit: VAJRA-X Multi-Domain Situational Awareness Platform)
