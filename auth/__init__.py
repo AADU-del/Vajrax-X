@@ -8,7 +8,8 @@ auth_bp = Blueprint(
 )
 
 login_manager = LoginManager()
-login_manager.login_view = "auth.login"
+# login_view is set to "login" (HTML page) in app.py after init_app — do NOT set it here
+# Setting it to "auth.login" (blueprint) would redirect unauthenticated users to a JSON endpoint
 login_manager.login_message = "Authentication required"
 login_manager.login_message_category = "warning"
 

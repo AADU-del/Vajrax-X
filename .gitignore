@@ -43,3 +43,9 @@ static/processed/*
 htmlcov/
 .vscode/
 .idea/
+
+# Personal / interview preparation documents
+interview_notes.md
+
+# Ensure env template is always tracked (even though .env.* is ignored)
+!.env.example

@@ -10,7 +10,7 @@ echo ========================================
 echo.
 
 REM Activate virtual environment
-call venv\Scripts\activate.bat
+call .venv\Scripts\activate.bat
 
 if %errorlevel% neq 0 (
     echo ERROR: Failed to activate virtual environment

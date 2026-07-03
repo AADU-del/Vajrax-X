@@ -20,7 +20,7 @@ if %errorlevel% neq 0 (
 )
 
 echo [1/4] Creating virtual environment...
-python -m venv venv
+python -m venv .venv
 if %errorlevel% neq 0 (
     echo ERROR: Failed to create virtual environment
     pause
@@ -28,7 +28,7 @@ if %errorlevel% neq 0 (
 )
 
 echo [2/4] Activating virtual environment...
-call venv\Scripts\activate.bat
+call .venv\Scripts\activate.bat
 if %errorlevel% neq 0 (
     echo ERROR: Failed to activate virtual environment
     pause
@@ -57,7 +57,7 @@ echo   Setup Complete!
 echo ========================================
 echo.
 echo To activate the virtual environment, run:
-echo   venv\Scripts\activate.bat
+echo   .venv\Scripts\activate.bat
 echo.
 echo To start the development server, run:
 echo   python run.py
