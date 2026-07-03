@@ -44,6 +44,7 @@ import logging
 # Bug #23: Configure both console and rotating file handler
 cfg: Config = get_config()
 cfg.ensure_directories()
+cfg.warn_if_default_admin_credentials()
 
 logging.basicConfig(
     level=getattr(logging, cfg.LOG_LEVEL, logging.INFO),

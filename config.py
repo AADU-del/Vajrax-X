@@ -101,6 +101,11 @@ class Config:
     ADMIN_USERNAME: str = os.getenv('ADMIN_USERNAME', 'mehak')
     ADMIN_PASSWORD: str = os.getenv('ADMIN_PASSWORD', 'ChangeMe@2024!')
 
+    @classmethod
+    def warn_if_default_admin_credentials(cls):
+        if cls.ADMIN_PASSWORD == 'ChangeMe@2024!' or cls._looks_like_placeholder(cls.ADMIN_PASSWORD):
+            print("WARNING: ADMIN_PASSWORD is still using the default value. Set a strong password in .env before deployment.")
+
     # Bug #22: Include both common dev ports in default CORS origins
     CORS_ALLOWED_ORIGINS: str = os.getenv(
         'CORS_ALLOWED_ORIGINS',
