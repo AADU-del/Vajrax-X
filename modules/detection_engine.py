@@ -7,10 +7,10 @@ import time
 # PyTorch's C-extension from silently crashing on Windows MINGW builds.
 
 logger = logging.getLogger(__name__)
-
+     
 # ─────────────────────────────────────────────────────────
 # MODULE RULES — per-module detection targets & threat levels
-# ─────────────────────────────────────────────────────────
+# ───────────── ────────────────────────────────────────────
 MODULE_RULES = {
     'border': {
         'targets': ['person','car','truck','motorcycle','backpack','suitcase'],
